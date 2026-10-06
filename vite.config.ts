@@ -1,37 +1,35 @@
-import tailwindcss from '@tailwindcss/vite';
+import { fileURLToPath, URL } from 'node:url';
 import react from '@vitejs/plugin-react';
-import path from 'path';
-import {defineConfig} from 'vite';
+import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'vitest/config';
 
-export default defineConfig(() => {
-  const configuredPort = Number.parseInt(process.env.PORT ?? '', 10);
-  return {
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(import.meta.dirname, '.'),
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT) || 4173,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/afetivo.js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
-    server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-    preview: {
-      host: '0.0.0.0',
-      port: Number.isFinite(configuredPort) ? configuredPort : 4173,
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          // Nomes estáveis permitem que o service worker forme o app shell.
-          // Outros chunks continuam sendo armazenados em tempo de execução.
-          entryFileNames: 'assets/afetivo.js',
-          assetFileNames: 'assets/[name][extname]',
-        },
-      },
-    },
-  };
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+    include: ['tests/unit/**/*.test.{ts,tsx}', 'tests/component/**/*.test.{ts,tsx}'],
+    exclude: ['node_modules/**', 'dist/**', 'legacy/**', 'tests/e2e/**'],
+    restoreMocks: true,
+  },
 });
