@@ -7,7 +7,7 @@ import prettier from 'eslint-config-prettier';
 const hooksRecommended = reactHooks.configs.flat['recommended-latest'];
 
 export default tseslint.config(
-  { ignores: ['dist/', 'legacy/', 'node_modules/', 'coverage/', 'public/'] },
+  { ignores: ['dist/', 'node_modules/', 'coverage/', 'public/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

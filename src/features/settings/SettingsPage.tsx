@@ -3,10 +3,12 @@ import { appEnv } from '@/core/env';
 import { DISCLAIMER } from '@/core/constants';
 import { Button, Card, Field, Skeleton, TextInput } from '@/components/ui';
 import { useProfile, useUpdateProfile } from '@/data/hooks';
+import { getAppStore } from '@/data/appStore';
+import { collectExport, downloadExport } from '@/data/export';
+import { SyncAccessCard } from './SyncAccessCard';
 
 /**
- * Ajustes: perfil (nome), estado da sincronização e aviso legal.
- * Exportação, IA e preferências finais entram no polish (Fase 7).
+ * Ajustes: perfil, acesso/sincronização, exportação de backup e aviso legal.
  */
 export function SettingsPage() {
   const { profile, isLoading } = useProfile();
@@ -16,6 +18,9 @@ export function SettingsPage() {
   const currentName = name ?? profile?.displayName ?? '';
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState(false);
+  const [exportError, setExportError] = useState(false);
   const env = appEnv();
 
   async function handleSave(): Promise<void> {
@@ -31,6 +36,20 @@ export function SettingsPage() {
       setSaved(true);
     } catch {
       setError('Não foi possível salvar o nome. Tente novamente.');
+    }
+  }
+
+  async function handleExport(): Promise<void> {
+    setExporting(true);
+    setExported(false);
+    setExportError(false);
+    try {
+      downloadExport(await collectExport(getAppStore()));
+      setExported(true);
+    } catch {
+      setExportError(true);
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -83,19 +102,40 @@ export function SettingsPage() {
       </Card>
 
       <Card>
-        <h2 className="text-lg font-semibold">Sincronização</h2>
-        <p className="mt-2 text-sm text-ink-muted">
-          {env.remoteEnabled
-            ? 'Sincronização entre dispositivos disponível. O login por e-mail entra na Fase 7.'
-            : 'Modo local: os dados ficam apenas neste navegador, sem conta e sem servidor.'}
-        </p>
+        <h2 className="text-lg font-semibold">Sincronização e acesso</h2>
+        <div className="mt-3">
+          <SyncAccessCard remoteEnabled={env.remoteEnabled} />
+        </div>
         {env.issues.length > 0 && (
-          <ul className="mt-2 space-y-1 text-sm text-danger">
+          <ul className="mt-3 space-y-1 text-sm text-danger">
             {env.issues.map((issue) => (
               <li key={issue}>{issue}</li>
             ))}
           </ul>
         )}
+      </Card>
+
+      <Card>
+        <h2 className="text-lg font-semibold">Exportar dados</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          Baixa um arquivo JSON com tudo o que você registrou — registros, medicações e perfil. O
+          arquivo fica no seu dispositivo; nada passa pelo servidor.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button onClick={() => void handleExport()} loading={exporting}>
+            Exportar dados (JSON)
+          </Button>
+          {exported && (
+            <p role="status" className="text-sm text-ink-muted">
+              Arquivo gerado — confira a pasta de downloads.
+            </p>
+          )}
+          {exportError && (
+            <p role="alert" className="text-sm text-danger">
+              Não foi possível gerar o arquivo. Tente novamente.
+            </p>
+          )}
+        </div>
       </Card>
 
       <div className="rounded-2xl border border-edge bg-panel-2 p-4 text-xs leading-relaxed text-ink-muted">

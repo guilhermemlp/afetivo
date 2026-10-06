@@ -9,6 +9,7 @@ import { getAuthApi, getSupabase } from '@/data/auth';
 import { getAppStore } from '@/data/appStore';
 import { createSupabaseRemote } from '@/data/remote/supabaseRemote';
 import { notifyLocalChange, startSyncRuntime } from '@/data/sync/runtime';
+import { setSyncStatus } from '@/data/sync/status';
 import './styles/index.css';
 
 applyTheme(getStoredTheme());
@@ -20,6 +21,14 @@ if (supabase) {
     store: getAppStore(),
     remote: createSupabaseRemote(supabase),
     getSession: async () => (await authApi?.currentSession()) ?? null,
+    onSync: (result) =>
+      setSyncStatus({
+        kind: 'ok',
+        at: Date.now(),
+        pushed: result.pushed,
+        merged: result.merged,
+      }),
+    onError: (error) => setSyncStatus({ kind: 'error', at: Date.now(), message: error.message }),
   });
   authApi?.onAuthChange(() => notifyLocalChange());
 }

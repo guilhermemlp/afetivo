@@ -22,6 +22,15 @@ export default defineConfig({
         entryFileNames: 'assets/afetivo.js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ },
+            { name: 'dataviz', test: /node_modules[\\/](recharts|d3-|victory|lodash)[\\/]/ },
+            { name: 'zod-dexie', test: /node_modules[\\/](zod|dexie)[\\/]/ },
+            { name: 'vendor', test: /node_modules[\\/]/ },
+          ],
+        },
       },
     },
   },
@@ -29,7 +38,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/unit/**/*.test.{ts,tsx}', 'tests/component/**/*.test.{ts,tsx}'],
-    exclude: ['node_modules/**', 'dist/**', 'legacy/**', 'tests/e2e/**'],
+    exclude: ['node_modules/**', 'dist/**', 'tests/e2e/**'],
     restoreMocks: true,
   },
 });
