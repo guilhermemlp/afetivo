@@ -10,6 +10,8 @@ export const warningSignSchema = z.object({
   label: z.string().min(1).max(120),
   active: z.boolean().default(true),
   createdAt: z.number().int().nonnegative(),
+  /** Versão do registro para merge LWW no sync. */
+  updatedAt: z.number().int().nonnegative(),
 });
 export type WarningSign = z.infer<typeof warningSignSchema>;
 
@@ -32,6 +34,8 @@ export const assessmentSchema = z.object({
   answers: z.record(z.string(), z.number()).nullable().default(null),
   notes: z.string().max(2000).nullable().default(null),
   createdAt: z.number().int().nonnegative(),
+  /** Versão do registro para merge LWW no sync. */
+  updatedAt: z.number().int().nonnegative(),
 });
 export type Assessment = z.infer<typeof assessmentSchema>;
 

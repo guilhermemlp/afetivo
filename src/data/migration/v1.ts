@@ -279,6 +279,7 @@ export function migrateEntry(raw: unknown): MigratedEntry {
           sideEffects: readTextList(intake.sideEffects),
           notes: null,
           createdAt,
+          updatedAt: createdAt,
         }),
       );
     }

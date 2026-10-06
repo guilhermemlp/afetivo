@@ -60,6 +60,8 @@ export const medicationEventSchema = z.object({
   sideEffects: z.array(z.string().min(1).max(200)).default(() => []),
   notes: z.string().max(2000).nullable().default(null),
   createdAt: z.number().int().nonnegative(),
+  /** Versão do registro para merge LWW no sync (edições criam novo valor). */
+  updatedAt: z.number().int().nonnegative(),
 });
 export type MedicationEvent = z.infer<typeof medicationEventSchema>;
 
