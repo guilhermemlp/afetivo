@@ -14,6 +14,15 @@ function round1(value: number): number {
   return Math.round(value * 10) / 10;
 }
 
+/**
+ * Média para exibição: no máximo 1 casa decimal, vírgula no lugar do ponto;
+ * `null` vira "—" (ausência nunca é exibida como zero).
+ */
+export function formatAvg(value: number | null): string {
+  if (value == null) return '—';
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace('.', ',');
+}
+
 function mean(values: number[]): number | null {
   if (values.length === 0) return null;
   return round1(values.reduce((sum, value) => sum + value, 0) / values.length);

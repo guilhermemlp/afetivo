@@ -9,6 +9,8 @@ import { z } from 'zod';
 const envSchema = z.object({
   VITE_SUPABASE_URL: z.url('VITE_SUPABASE_URL precisa ser uma URL').optional(),
   VITE_SUPABASE_ANON_KEY: z.string().min(1).optional(),
+  /** Endpoint da Edge Function de análise com IA (opcional; sem ela, tudo local). */
+  VITE_AI_ANALYSIS_URL: z.url('VITE_AI_ANALYSIS_URL precisa ser uma URL').optional(),
 });
 
 export interface AppEnv {
@@ -16,6 +18,8 @@ export interface AppEnv {
   readonly supabaseUrl: string | null;
   readonly supabaseAnonKey: string | null;
   readonly remoteEnabled: boolean;
+  /** Endpoint de análise com IA; `null` = usar a análise local determinística. */
+  readonly aiAnalysisUrl: string | null;
   /** Problemas de configuração para exibir em Ajustes (nunca derruba o app). */
   readonly issues: readonly string[];
 }
@@ -37,7 +41,13 @@ function toAppEnv(raw: unknown): AppEnv {
     for (const issue of parsed.error.issues) {
       issues.push(issue.message);
     }
-    return { supabaseUrl: null, supabaseAnonKey: null, remoteEnabled: false, issues };
+    return {
+      supabaseUrl: null,
+      supabaseAnonKey: null,
+      remoteEnabled: false,
+      aiAnalysisUrl: null,
+      issues,
+    };
   }
 
   const url = parsed.data.VITE_SUPABASE_URL ?? null;
@@ -48,7 +58,13 @@ function toAppEnv(raw: unknown): AppEnv {
   }
 
   const remoteEnabled = Boolean(url && anonKey);
-  return { supabaseUrl: url, supabaseAnonKey: anonKey, remoteEnabled, issues };
+  return {
+    supabaseUrl: url,
+    supabaseAnonKey: anonKey,
+    remoteEnabled,
+    aiAnalysisUrl: parsed.data.VITE_AI_ANALYSIS_URL ?? null,
+    issues,
+  };
 }
 
 let cached: AppEnv | null = null;

@@ -70,4 +70,59 @@ describe('TodayPage', () => {
     expect(entries[0]?.moodScore).toBeNull();
     expect(entries[0]?.recordKind).toBe('moment');
   });
+
+  it('cria e depois edita o mesmo resumo do dia', async () => {
+    const store = setupStore();
+    const user = userEvent.setup();
+    renderApp(<TodayPage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Fechar o dia' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Resumo do dia' });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Agradável' }));
+    await user.type(within(dialog).getByLabelText('Nota do dia'), 'dia produtivo');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar resumo' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const entries = await store.entries.list();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      recordKind: 'daily_summary',
+      moodScore: 2,
+      journalNotes: 'dia produtivo',
+    });
+
+    expect(screen.getByRole('button', { name: 'Editar resumo' })).toBeInTheDocument();
+    expect(screen.getByText('dia produtivo')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Editar resumo' }));
+    const reopened = await screen.findByRole('dialog', { name: 'Resumo do dia' });
+    expect(within(reopened).getByLabelText('Nota do dia')).toHaveValue('dia produtivo');
+    expect(within(reopened).getByRole('button', { name: 'Agradável' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await user.type(within(reopened).getByLabelText('Nota do dia'), ' no fim');
+    await user.click(within(reopened).getByRole('button', { name: 'Salvar resumo' }));
+    await waitFor(async () => expect(await store.entries.list()).toHaveLength(1));
+    expect((await store.entries.list())[0]?.journalNotes).toBe('dia produtivo no fim');
+  });
+
+  it('marca o resumo do dia na lista de registros', async () => {
+    const store = setupStore();
+    const user = userEvent.setup();
+    renderApp(<TodayPage />);
+    await screen.findByText('Nenhum registro hoje');
+
+    await user.click(screen.getByRole('button', { name: 'Fechar o dia' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Resumo do dia' });
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar resumo' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    expect(await store.entries.list()).toHaveLength(1);
+    const region = screen.getByRole('region', { name: 'Registros de hoje' });
+    expect(within(region).getByText('Resumo do dia')).toBeInTheDocument();
+    expect(within(region).getByText('Não informado')).toBeInTheDocument();
+  });
 });

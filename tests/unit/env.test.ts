@@ -39,7 +39,24 @@ describe('parseAppEnv', () => {
 
     expect(env.remoteEnabled).toBe(false);
     expect(env.supabaseUrl).toBeNull();
+    expect(env.aiAnalysisUrl).toBeNull();
     expect(env.issues).toEqual([]);
+  });
+
+  it('aceita o endpoint opcional de análise com IA', () => {
+    const env = parseAppEnv({
+      VITE_AI_ANALYSIS_URL: 'https://demo.supabase.co/functions/v1/ai-analysis',
+    });
+
+    expect(env.aiAnalysisUrl).toBe('https://demo.supabase.co/functions/v1/ai-analysis');
+    expect(env.issues).toEqual([]);
+  });
+
+  it('endpoint de IA malformado vira issue e fica nulo', () => {
+    const env = parseAppEnv({ VITE_AI_ANALYSIS_URL: 'nao-e-url' });
+
+    expect(env.aiAnalysisUrl).toBeNull();
+    expect(env.issues.some((issue) => issue.includes('VITE_AI_ANALYSIS_URL'))).toBe(true);
   });
 
   it('trata valor vazio como ausente', () => {

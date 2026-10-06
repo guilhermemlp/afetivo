@@ -140,4 +140,21 @@ describe('PatternsPage', () => {
     expect(await screen.findByText('Sem dados para analisar')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Registrar um momento' })).toHaveAttribute('href', '/');
   });
+
+  it('gera a análise local e avisa que a IA não está configurada', async () => {
+    const user = userEvent.setup();
+    setupStore({ entries: seedEntries() });
+    renderApp(<PatternsPage />);
+    await screen.findByLabelText('Resumo do período');
+
+    await user.click(screen.getByRole('button', { name: 'Gerar análise' }));
+
+    const status = await screen.findByRole('status');
+    expect(status).toHaveTextContent(/Provedor: Análise local/);
+    expect(status).toHaveTextContent(/IA não configurada no servidor/);
+    expect(status).toHaveTextContent(/não é diagnóstico nem recomendação de medicação/);
+
+    await user.click(screen.getByRole('button', { name: '14 dias' }));
+    expect(screen.queryByRole('status')).toBeNull();
+  });
 });

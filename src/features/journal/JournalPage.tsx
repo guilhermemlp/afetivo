@@ -142,6 +142,11 @@ export function JournalPage() {
                 </div>
               </div>
               <p className="mt-1 text-sm">
+                {entry.recordKind === 'daily_summary' && (
+                  <span className="mr-2 rounded-full bg-panel-2 px-2 py-0.5 text-xs text-ink-muted">
+                    Resumo do dia
+                  </span>
+                )}
                 {moodLabel(entry)} · {activationText(entry)}
               </p>
               {entry.journalNotes && (

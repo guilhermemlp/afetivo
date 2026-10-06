@@ -131,4 +131,22 @@ describe('JournalPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Detalhes do registro' });
     expect(within(dialog).getByText(/Tudo é opcional/)).toBeInTheDocument();
   });
+
+  it('identifica o resumo do dia no feed', async () => {
+    const summary = withUpdates(
+      createBlankEntry(new Date(2026, 9, 6, 21, 0)),
+      {
+        recordKind: 'daily_summary',
+        moodScale: 'valence',
+        moodScore: 1,
+        journalNotes: 'dia fechado com calma',
+      },
+      3,
+    );
+    setupStore({ entries: [...seedEntries(), summary] });
+    renderApp(<JournalPage />);
+
+    expect(await screen.findByText('dia fechado com calma')).toBeInTheDocument();
+    expect(screen.getByText('Resumo do dia')).toBeInTheDocument();
+  });
 });

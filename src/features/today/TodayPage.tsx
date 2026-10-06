@@ -21,6 +21,7 @@ import {
 } from '@/components/ui';
 import { useEntries, useSaveEntry } from '@/data/hooks';
 import { EntryDetailsModal } from '@/features/entryDetails/EntryDetailsModal';
+import { DailySummaryModal } from './DailySummaryModal';
 
 const QUICK_SCALES = [
   { key: 'anxiety', label: 'Ansiedade' },
@@ -50,16 +51,28 @@ export function TodayPage() {
   const [time, setTime] = useState(() => localTime(new Date()));
   const [status, setStatus] = useState<Status>(null);
   const [details, setDetails] = useState<Entry | null>(null);
+  const [summaryDraft, setSummaryDraft] = useState<Entry | null>(null);
 
   const today = localDate(new Date());
   const todayEntries = useMemo(
     () => entries.filter((entry) => entry.date === today),
     [entries, today],
   );
+  const dailySummary = useMemo(
+    () => todayEntries.find((entry) => entry.recordKind === 'daily_summary') ?? null,
+    [todayEntries],
+  );
 
   /** Detalhes vão para o registro mais recente de hoje (ou um novo). */
   function openDetails(): void {
     setDetails(todayEntries[0] ?? createBlankEntry());
+  }
+
+  /** Resumo: um por dia — edita o existente ou cria o de hoje. */
+  function openSummary(): void {
+    setSummaryDraft(
+      dailySummary ?? withUpdates(createBlankEntry(), { recordKind: 'daily_summary' }),
+    );
   }
 
   function updateScale(key: QuickScaleKey, value: number | null): void {
@@ -216,6 +229,28 @@ export function TodayPage() {
         )}
       </Card>
 
+      <Card>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Resumo do dia</h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              Fechamento do dia: um por data, com o que você quiser anotar.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={openSummary} className="w-full sm:w-auto">
+            {dailySummary ? 'Editar resumo' : 'Fechar o dia'}
+          </Button>
+        </div>
+        {dailySummary && (
+          <div className="mt-3 rounded-2xl border border-edge bg-panel-2 p-4 text-sm">
+            <p className="font-medium">{moodLabel(dailySummary)}</p>
+            {dailySummary.journalNotes && (
+              <p className="mt-1 whitespace-pre-wrap text-ink-muted">{dailySummary.journalNotes}</p>
+            )}
+          </div>
+        )}
+      </Card>
+
       <section aria-labelledby="registros-hoje" className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="registros-hoje" className="text-lg font-semibold">
@@ -241,7 +276,14 @@ export function TodayPage() {
                 className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm"
               >
                 <span className="font-medium tabular-nums">{entry.time}</span>
-                <span>{moodLabel(entry)}</span>
+                <span className="flex items-center gap-2">
+                  {entry.recordKind === 'daily_summary' && (
+                    <span className="rounded-full bg-panel-2 px-2 py-0.5 text-xs text-ink-muted">
+                      Resumo do dia
+                    </span>
+                  )}
+                  {moodLabel(entry)}
+                </span>
                 <span className="text-ink-muted">
                   {entry.activationLevel == null
                     ? 'Ativação não informada'
@@ -255,6 +297,13 @@ export function TodayPage() {
 
       {details && (
         <EntryDetailsModal key={details.id} entry={details} onClose={() => setDetails(null)} />
+      )}
+      {summaryDraft && (
+        <DailySummaryModal
+          key={summaryDraft.id}
+          entry={summaryDraft}
+          onClose={() => setSummaryDraft(null)}
+        />
       )}
     </section>
   );

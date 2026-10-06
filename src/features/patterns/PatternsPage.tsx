@@ -1,20 +1,16 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { dailyIntakes, dailySeries, periodStats, topTags } from '@/core/analysis';
+import { dailyIntakes, dailySeries, formatAvg, periodStats, topTags } from '@/core/analysis';
 import { DISCLAIMER, PERIOD_OPTIONS } from '@/core/constants';
 import { dateRange } from '@/core/dates';
 import { buttonClass, Card, ChoiceButton, EmptyState, Skeleton } from '@/components/ui';
+import type { AiAnalysisRequest } from '@/data/ai';
 import { useEntries, useMedicationEvents } from '@/data/hooks';
 import { Afetivograma } from './Afetivograma';
+import { AiAnalysisCard } from './AiAnalysisCard';
 import { MedsMoodTimeline } from './MedsMoodTimeline';
 import { MoodTrendChart } from './MoodTrendChart';
 import { TagFrequency } from './TagFrequency';
-
-/** Média com no máximo 1 casa decimal; vírgula no lugar do ponto. */
-function formatAvg(value: number | null): string {
-  if (value == null) return '—';
-  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace('.', ',');
-}
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -39,6 +35,12 @@ export function PatternsPage() {
   const stats = useMemo(() => periodStats(entries, events, range), [entries, events, range]);
   const tags = useMemo(() => topTags(entries, range), [entries, range]);
   const intakes = useMemo(() => dailyIntakes(events, range), [events, range]);
+
+  const periodLabel = PERIOD_OPTIONS.find((option) => option.days === period)?.label ?? 'Período';
+  const aiRequest = useMemo<AiAnalysisRequest>(
+    () => ({ periodDays: period, periodLabel, stats, tags }),
+    [period, periodLabel, stats, tags],
+  );
 
   return (
     <section className="space-y-4">
@@ -105,6 +107,7 @@ export function PatternsPage() {
           <Afetivograma entries={entries} />
           <MedsMoodTimeline points={points} intakes={intakes} />
           <TagFrequency tags={tags} />
+          <AiAnalysisCard key={String(period)} request={aiRequest} />
 
           <Card>
             <p className="text-sm text-ink-muted">{DISCLAIMER}</p>
