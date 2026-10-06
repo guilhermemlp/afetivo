@@ -84,6 +84,7 @@ export interface AfetivoEntry {
     | "medications"
     | "activities"
     | "support"
+    | "focus"
     | "notes"
   )[];
   nextStep?: string;
@@ -94,6 +95,10 @@ export interface AfetivoEntry {
   energyLevel: number | null; // 1 to 5
   anxietyLevel: number | null; // 0 to 5
   irritabilityLevel: number | null; // 0 to 5
+  mentalClarityLevel: number | null; // 1 = mente muito nebulosa, 5 = muito clara
+  hyperfocusPresent: boolean | null;
+  hyperfocusNotes: string | null;
+  unmetIntentionNotes: string | null;
   sleepHours: number | null;
   sleepQuality: "poor" | "fair" | "good" | "restorative" | null;
   sleepLatencyMinutes?: number;

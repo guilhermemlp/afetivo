@@ -113,7 +113,15 @@ test('a new browser starts empty without demo medications or mood observations',
 });
 
 test('unchanged old demo fixtures are identified without marking edited personal notes as demo', () => {
-  const { isDemo, moodScale, ...old } = generateInitialSeedEntries()[0];
+  const {
+    isDemo,
+    moodScale,
+    mentalClarityLevel,
+    hyperfocusPresent,
+    hyperfocusNotes,
+    unmetIntentionNotes,
+    ...old
+  } = generateInitialSeedEntries()[0];
   values.set('afetivo_entries_v2', JSON.stringify([old]));
   assert.equal(loadEntries()[0].isDemo, true);
   values.set('afetivo_entries_v2', JSON.stringify([{ ...old, journalNotes: 'Meu registro pessoal editado.' }]));
@@ -123,7 +131,7 @@ test('unchanged old demo fixtures are identified without marking edited personal
 
 test('new fields and explicit unknowns survive JSON and CSV exports', () => {
   const base = generateInitialSeedEntries()[0];
-  saveEntries([{ ...base, schemaVersion: 3, isDemo: false, moodScale: 'valence', recordKind: 'moment', moodScore: null, activationLevel: 4, sleepHours: null, contexts: ['Interrupções'], strategyEffect: 'partly', observedSections: ['context', 'support'], nextStep: 'Uma etapa', physicalActivities: [{ type: 'Caminhada', durationMinutes: null, intensity: null }], impulsiveBehaviors: [] }]);
+  saveEntries([{ ...base, schemaVersion: 3, isDemo: false, moodScale: 'valence', recordKind: 'moment', moodScore: null, activationLevel: 4, sleepHours: null, contexts: ['Interrupções'], strategyEffect: 'partly', observedSections: ['context', 'support', 'focus'], nextStep: 'Uma etapa', mentalClarityLevel: 2, hyperfocusPresent: true, hyperfocusNotes: 'Pesquisa concentrada', unmetIntentionNotes: 'Responder uma mensagem', physicalActivities: [{ type: 'Caminhada', durationMinutes: null, intensity: null }], impulsiveBehaviors: [] }]);
   const backup = exportDataAsJSON();
   assert.equal(JSON.parse(backup).version, '3.0');
   clearAllUserData();
@@ -134,8 +142,14 @@ test('new fields and explicit unknowns survive JSON and CSV exports', () => {
   assert.equal(record.recordKind, 'moment');
   assert.equal(record.sleepHours, null);
   assert.equal(record.nextStep, 'Uma etapa');
+  assert.equal(record.mentalClarityLevel, 2);
+  assert.equal(record.hyperfocusPresent, true);
+  assert.equal(record.hyperfocusNotes, 'Pesquisa concentrada');
+  assert.equal(record.unmetIntentionNotes, 'Responder uma mensagem');
   const csv = exportDataAsCSV();
   assert.match(csv, /Escala_Humor,Tipo_Registro,Ativacao_1a5/);
   assert.match(csv, /"valence","moment","4","Interrupções","Uma etapa","partly"/);
+  assert.match(csv, /Clareza_Mental_1a5,Hiperfoco_Percebido,Hiperfoco_Descricao,Pretendia_Mas_Nao_Consegui/);
+  assert.match(csv, /"2","Sim","Pesquisa concentrada","Responder uma mensagem"/);
   assert.doesNotMatch(csv, /nullmin|Dose padrão|Adiou 15min/);
 });

@@ -211,7 +211,7 @@ test('new records are blank and opening optional sections does not create answer
   await page
     .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
     .click();
-  assert.equal(await page.locator('details').count(), 7);
+  assert.equal(await page.locator('details').count(), 8);
   await page.getByText('Sono e disposição', { exact: true }).click();
   assert.equal(
     await page
@@ -219,6 +219,7 @@ test('new records are blank and opening optional sections does not create answer
       .inputValue(),
     '',
   );
+  await page.getByText('Foco e clareza', { exact: true }).click();
   await page.getByText('Medicações e rotina', { exact: true }).click();
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
@@ -235,12 +236,73 @@ test('new records are blank and opening optional sections does not create answer
     'energyLevel',
     'anxietyLevel',
     'irritabilityLevel',
+    'mentalClarityLevel',
+    'hyperfocusPresent',
+    'hyperfocusNotes',
+    'unmetIntentionNotes',
     'sleepHours',
     'sleepQuality',
   ])
     assert.equal(saved[key], null);
   assert.deepEqual(saved.medicationIntakes, []);
   assert.deepEqual(saved.observedSections, []);
+});
+
+test('focus and clarity fields stay optional and preserve null, no and yes separately', async () => {
+  await seed('clear');
+  await page
+    .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  assert.equal(await page.getByText('Foco e clareza', { exact: true }).count(), 0);
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .click();
+  const focus = page.locator('details').filter({ hasText: 'Foco e clareza' });
+  await focus.getByText('Foco e clareza', { exact: true }).click();
+  await focus
+    .getByRole('button', { name: 'Clareza mental 2', exact: true })
+    .click();
+  await focus.getByRole('button', { name: 'Sim', exact: true }).click();
+  await focus
+    .getByRole('textbox', { name: 'Descrição do hiperfoco', exact: true })
+    .fill('Organizando referências');
+  await focus
+    .getByRole('textbox', {
+      name: 'O que eu precisava e não consegui fazer hoje',
+      exact: true,
+    })
+    .fill('Responder uma mensagem');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Fechar registro' })
+    .waitFor({ state: 'hidden' });
+  const saved = (await data('afetivo_entries_v2'))[0];
+  assert.equal(saved.schemaVersion, 3);
+  assert.equal(saved.mentalClarityLevel, 2);
+  assert.equal(saved.hyperfocusPresent, true);
+  assert.equal(saved.hyperfocusNotes, 'Organizando referências');
+  assert.equal(saved.unmetIntentionNotes, 'Responder uma mensagem');
+  assert.ok(saved.observedSections.includes('focus'));
+
+  await page
+    .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .click();
+  const secondFocus = page
+    .locator('details')
+    .filter({ hasText: 'Foco e clareza' });
+  await secondFocus.getByText('Foco e clareza', { exact: true }).click();
+  await secondFocus.getByRole('button', { name: 'Não', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Fechar registro' })
+    .waitFor({ state: 'hidden' });
+  const noHyperfocus = (await data('afetivo_entries_v2')).find(
+    (entry) => entry.hyperfocusPresent === false,
+  );
+  assert.equal(noHyperfocus.hyperfocusNotes, null);
 });
 
 test('automatic draft survives closing, restores quick mode and clears after discard or save', async () => {
@@ -278,7 +340,7 @@ test('automatic draft survives closing, restores quick mode and clears after dis
     .getByRole('status')
     .filter({ hasText: 'Rascunho recuperado neste dispositivo.' })
     .waitFor();
-  assert.equal(await page.locator('details').count(), 7);
+  assert.equal(await page.locator('details').count(), 8);
   assert.equal(
     await page
       .getByRole('button', { name: 'Agradável', exact: true })

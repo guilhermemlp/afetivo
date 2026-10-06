@@ -40,6 +40,10 @@ test("nullable measurements survive validation and missing legacy fields are not
     "anxietyLevel",
     "irritabilityLevel",
     "isMixedState",
+    "mentalClarityLevel",
+    "hyperfocusPresent",
+    "hyperfocusNotes",
+    "unmetIntentionNotes",
   ] as const)
     assert.equal(incomplete[key], null);
   const old = validateEntries([
@@ -84,7 +88,10 @@ test("multiple observations are counted as records, not independent days, and ol
     /4 registros em 1 dias: 2 momentos, 1 resumos do dia e 1 registros antigos/,
   );
   assert.match(analysis.patterns![0], /3 respostas em 1 dias/);
-  assert.match(analysis.patterns![3], /1 registros da escala antiga/);
+  assert.match(
+    analysis.patterns!.find((pattern) => pattern.includes("escala antiga"))!,
+    /1 registros da escala antiga/,
+  );
 });
 test("frequent strategy use alone is not treated as helpful and labels are neutral", () => {
   const unknown = entry({
@@ -151,6 +158,11 @@ test("invalid new fields are rejected before import or persistence", () => {
     { moodScale: "anything" },
     { isDemo: "false" },
     { moodScore: 0.5 },
+    { mentalClarityLevel: 6 },
+    { mentalClarityLevel: 2.5 },
+    { hyperfocusPresent: "sim" },
+    { hyperfocusNotes: 3 },
+    { unmetIntentionNotes: [] },
   ])
     assert.throws(() => entry(patch));
   assert.throws(() =>
@@ -162,4 +174,26 @@ test("invalid new fields are rejected before import or persistence", () => {
   });
   assert.equal(values.physicalActivities![0].durationMinutes, null);
   assert.equal(values.impulsiveBehaviors[0].resisted, undefined);
+});
+
+test("focus fields remain descriptive and distinguish no from missing", () => {
+  const values = [
+    entry({
+      id: "focus",
+      mentalClarityLevel: 2,
+      hyperfocusPresent: true,
+      hyperfocusNotes: "Organizando referências",
+      unmetIntentionNotes: "Responder uma mensagem",
+      observedSections: ["focus"],
+    }),
+    entry({ id: "no-focus", hyperfocusPresent: false }),
+    entry({ id: "missing-focus" }),
+  ];
+  assert.match(describeEntries(values).patterns!.join("\n"), /Clareza mental: 1 respostas; 2 sem resposta/);
+  const report = buildDeterministicReport(values, [], "Teste", 0);
+  assert.match(report, /Clareza mental: 2\/5/);
+  assert.match(report, /Hiperfoco percebido: sim; descrição: Organizando referências/);
+  assert.match(report, /Atividade pretendida e não concluída: Responder uma mensagem/);
+  assert.match(report, /Hiperfoco percebido: não\./);
+  assert.match(report, /Hiperfoco percebido: não informado\./);
 });

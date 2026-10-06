@@ -133,6 +133,33 @@ export const JournalFeed: React.FC<Props> = ({
             · <strong>Sono:</strong>{" "}
             {e.sleepHours == null ? "Não informado" : `${e.sleepHours}h`}
           </p>
+          {(e.mentalClarityLevel != null ||
+            e.hyperfocusPresent != null ||
+            e.hyperfocusNotes != null ||
+            e.unmetIntentionNotes != null) && (
+            <div className="space-y-1">
+              <p>
+                <strong>Clareza mental:</strong>{" "}
+                {e.mentalClarityLevel == null
+                  ? "Não informada"
+                  : `${e.mentalClarityLevel}/5`}
+                {e.hyperfocusPresent != null && (
+                  <>
+                    {" "}
+                    · <strong>Hiperfoco:</strong>{" "}
+                    {e.hyperfocusPresent ? "Percebido" : "Não percebido"}
+                  </>
+                )}
+              </p>
+              {e.hyperfocusNotes && <p>Hiperfoco: {e.hyperfocusNotes}</p>}
+              {e.unmetIntentionNotes && (
+                <p>
+                  <strong>Eu precisava fazer:</strong>{" "}
+                  {e.unmetIntentionNotes}
+                </p>
+              )}
+            </div>
+          )}
           {!!e.emotions.length && (
             <p>
               <strong>Emoções:</strong> {e.emotions.join(", ")}

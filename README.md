@@ -53,6 +53,7 @@ O sistema foi construído para:
 | Registro      | Humor, ativação, data, horário e tipo de registro                |
 | Contexto      | Emoções, situações relatadas e notas livres                      |
 | Bem-estar     | Sono, energia física, ansiedade e irritabilidade                 |
+| Foco          | Clareza mental, hiperfoco e atividade pretendida não concluída   |
 | Impulsos      | Ocorrência, intensidade, desfecho e estratégia escolhida         |
 | Atividade     | Tipo, duração e intensidade de atividade física                  |
 | Apoios        | Apoio percebido, avaliação subjetiva e próximo passo             |
@@ -72,6 +73,12 @@ análises e dos relatórios pessoais.
 O novo registro começa apenas com humor, ativação, data e horário. As demais
 seções aparecem somente ao escolher **Adicionar mais detalhes**. Nenhuma
 resposta é obrigatória.
+
+Os campos de foco ficam em **Adicionar mais detalhes → Foco e clareza**. A
+seção é recolhida por padrão e diferencia “não”, “sim” e “não informado”.
+Clareza mental usa uma escala descritiva de 1 (muito nebulosa) a 5 (muito
+clara). Descrição do hiperfoco e atividade pretendida não concluída são textos
+curtos opcionais; ausência permanece `null`.
 
 Enquanto um novo registro está aberto, alterações são guardadas localmente na
 chave `afetivo_entry_draft_v1`, após uma breve pausa. Fechar o modal preserva o
@@ -354,6 +361,8 @@ rejeitados. A substituição exige confirmação dentro da aplicação.
 O CSV é destinado a planilhas e inclui os campos relevantes dos registros. Os
 textos são escapados e valores iniciados como fórmulas são neutralizados para
 reduzir o risco de execução ao abrir o arquivo em uma planilha.
+Clareza mental, presença de hiperfoco, descrição curta e atividade pretendida
+não concluída possuem colunas próprias; respostas ausentes ficam vazias.
 
 ### Recuperação em outro computador
 

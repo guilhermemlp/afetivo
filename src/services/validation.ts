@@ -75,6 +75,12 @@ function measurement(value: unknown, min: number, max: number): number | null {
   return value == null ? null : number(value, min, max, min);
 }
 
+function nullableText(value: unknown): string | null {
+  if (value == null) return null;
+  const result = text(value);
+  return result.trim() ? result : null;
+}
+
 export function validateEntries(value: unknown): AfetivoEntry[] {
   const entries = list(value, (item) => {
     const e = object(item);
@@ -121,6 +127,7 @@ export function validateEntries(value: unknown): AfetivoEntry[] {
             "medications",
             "activities",
             "support",
+            "focus",
             "notes",
           ] as const,
           "notes",
@@ -143,6 +150,16 @@ export function validateEntries(value: unknown): AfetivoEntry[] {
       energyLevel: measurement(e.energyLevel, 1, 5),
       anxietyLevel: measurement(e.anxietyLevel, 0, 5),
       irritabilityLevel: measurement(e.irritabilityLevel, 0, 5),
+      mentalClarityLevel: (() => {
+        const value = measurement(e.mentalClarityLevel, 1, 5);
+        if (value !== null && !Number.isInteger(value))
+          throw new Error("Clareza mental inválida.");
+        return value;
+      })(),
+      hyperfocusPresent:
+        e.hyperfocusPresent == null ? null : bool(e.hyperfocusPresent, false),
+      hyperfocusNotes: nullableText(e.hyperfocusNotes),
+      unmetIntentionNotes: nullableText(e.unmetIntentionNotes),
       sleepHours: measurement(e.sleepHours, 0, 24),
       sleepQuality:
         e.sleepQuality == null

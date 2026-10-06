@@ -431,6 +431,10 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
       energyLevel: sc.energyLevel,
       anxietyLevel: sc.anxietyLevel,
       irritabilityLevel: sc.irritabilityLevel,
+      mentalClarityLevel: null,
+      hyperfocusPresent: null,
+      hyperfocusNotes: null,
+      unmetIntentionNotes: null,
       sleepHours: sc.sleepHours,
       sleepQuality: sc.sleepQuality,
       sleepLatencyMinutes: sc.sleepHours < 5 ? 75 : 20,
@@ -457,7 +461,17 @@ function sanitizeEntry(entry: AfetivoEntry): AfetivoEntry {
   // Recognize only unchanged historical demo fixtures, never personal notes or unknown IDs.
   if (entry.isDemo === undefined && /^entry-seed-\d+$/.test(entry.id)) {
     const fixture = generateInitialSeedEntries().find(e => e.id === entry.id);
-    const ignored = new Set(['date', 'createdAt', 'isDemo', 'moodScale']);
+    const ignored = new Set([
+      'date',
+      'createdAt',
+      'isDemo',
+      'moodScale',
+      // Estes campos não existiam nas demonstrações legadas.
+      'mentalClarityLevel',
+      'hyperfocusPresent',
+      'hyperfocusNotes',
+      'unmetIntentionNotes',
+    ]);
     if (fixture && Object.keys(fixture).filter(key => !ignored.has(key)).every(key =>
       JSON.stringify(entry[key as keyof AfetivoEntry]) === JSON.stringify(fixture[key as keyof AfetivoEntry]))) {
       return validateEntries([{ ...entry, isDemo: true }])[0];
@@ -691,7 +705,7 @@ export function exportDataAsCSV(): string {
     'Tags_Personalizadas',
     'Rotina_Medicacoes_Suplementos',
     'Notas_Diario',
-    'Notas_Gratidao', 'Escala_Humor', 'Tipo_Registro', 'Ativacao_1a5', 'Contextos', 'Proximo_Passo', 'Estrategia_Avaliacao', 'Secoes_Respondidas', 'Demonstracao',
+    'Notas_Gratidao', 'Escala_Humor', 'Tipo_Registro', 'Ativacao_1a5', 'Contextos', 'Proximo_Passo', 'Estrategia_Avaliacao', 'Secoes_Respondidas', 'Demonstracao', 'Clareza_Mental_1a5', 'Hiperfoco_Percebido', 'Hiperfoco_Descricao', 'Pretendia_Mas_Nao_Consegui',
   ];
 
   const escapeCsv = (str: string | number | boolean | null | undefined) => {
@@ -758,7 +772,7 @@ export function exportDataAsCSV(): string {
       escapeCsv(tagsStr),
       escapeCsv(medIntakesStr),
       escapeCsv(e.journalNotes),
-      escapeCsv(e.gratitudeNotes), escapeCsv(e.moodScale ?? 'legacy'), escapeCsv(e.recordKind ?? 'legacy'), escapeCsv(e.activationLevel), escapeCsv(e.contexts?.join('; ')), escapeCsv(e.nextStep), escapeCsv(e.strategyEffect), escapeCsv(e.observedSections?.join('; ')), escapeCsv(Boolean(e.isDemo)),
+      escapeCsv(e.gratitudeNotes), escapeCsv(e.moodScale ?? 'legacy'), escapeCsv(e.recordKind ?? 'legacy'), escapeCsv(e.activationLevel), escapeCsv(e.contexts?.join('; ')), escapeCsv(e.nextStep), escapeCsv(e.strategyEffect), escapeCsv(e.observedSections?.join('; ')), escapeCsv(Boolean(e.isDemo)), escapeCsv(e.mentalClarityLevel), escapeCsv(e.hyperfocusPresent == null ? null : e.hyperfocusPresent ? 'Sim' : 'Não'), escapeCsv(e.hyperfocusNotes), escapeCsv(e.unmetIntentionNotes),
     ].join(',');
   });
 

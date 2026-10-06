@@ -69,7 +69,8 @@ export function measurementSummary(
     | 'activationLevel'
     | 'sleepHours'
     | 'anxietyLevel'
-    | 'energyLevel',
+    | 'energyLevel'
+    | 'mentalClarityLevel',
 ) {
   const measured = entries.filter(
     (e) => typeof e[key] === 'number' && Number.isFinite(e[key]),
@@ -108,6 +109,7 @@ export function describeEntries(
     (e) => e.recordKind === 'daily_summary',
   ).length;
   const sleep = measurementSummary(entries, 'sleepHours');
+  const mentalClarity = measurementSummary(entries, 'mentalClarityLevel');
   const valence = entries.filter((e) => e.moodScale === 'valence');
   const mood = measurementSummary(valence, 'moodScore'),
     activation = measurementSummary(valence, 'activationLevel');
@@ -139,6 +141,7 @@ export function describeEntries(
       `Humor agradável/desagradável: ${mood.count} respostas em ${mood.days} dias; ${mood.missing} sem resposta entre ${valence.length} registros da nova escala.`,
       `Ativação: ${activation.count} respostas; ${activation.missing} sem resposta na nova escala.`,
       `Sono: ${sleep.count} respostas em ${sleep.days} dias; ${sleep.missing} sem resposta.`,
+      `Clareza mental: ${mentalClarity.count} respostas; ${mentalClarity.missing} sem resposta.`,
       `${entries.filter((e) => e.moodScale !== 'valence').length} registros da escala antiga, mantidos separados.`,
       `Contextos frequentes são relatos, sem comprovação de causa. Frequência de estratégia não demonstra eficácia.`,
     ],
@@ -169,6 +172,11 @@ function describeRecord(e: AfetivoEntry): string {
     `Emoções: ${e.emotions.join(', ') || 'não informadas'}.`,
     `Contexto: ${[...(e.contexts ?? []), ...e.triggers].join('; ') || 'não informado'}.`,
     `Energia física: ${e.energyLevel ?? 'não informada'}; ansiedade: ${e.anxietyLevel ?? 'não informada'}; irritabilidade: ${e.irritabilityLevel ?? 'não informada'}.`,
+    `Clareza mental: ${e.mentalClarityLevel ?? 'não informada'}${e.mentalClarityLevel == null ? '' : '/5'}.`,
+    `Hiperfoco percebido: ${e.hyperfocusPresent == null ? 'não informado' : e.hyperfocusPresent ? 'sim' : 'não'}${e.hyperfocusNotes ? `; descrição: ${e.hyperfocusNotes}` : ''}.`,
+    ...(e.unmetIntentionNotes
+      ? [`Atividade pretendida e não concluída: ${e.unmetIntentionNotes}`]
+      : []),
     `Sono: ${e.sleepHours == null ? 'não informado' : `${e.sleepHours}h`}; qualidade: ${e.sleepQuality ? quality[e.sleepQuality] : 'não informada'}.`,
     `Notas: ${e.journalNotes || 'não informadas'}`,
     ...(e.whatHelpedNotes ? [`Apoio relatado: ${e.whatHelpedNotes}`] : []),
