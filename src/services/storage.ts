@@ -435,6 +435,21 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
       hyperfocusPresent: null,
       hyperfocusNotes: null,
       unmetIntentionNotes: null,
+      domainFlags: null,
+      domainOther: null,
+      anxietyScore: null,
+      stressScore: null,
+      sadnessScore: null,
+      urgeScore: null,
+      isolationScore: null,
+      compulsionLevel: null,
+      urgeDescription: null,
+      behaviorDescription: null,
+      behaviorFunctions: null,
+      behaviorFunctionNote: null,
+      consequence: null,
+      impulsiveSpending: null,
+      timeToBaseline: null,
       sleepHours: sc.sleepHours,
       sleepQuality: sc.sleepQuality,
       sleepLatencyMinutes: sc.sleepHours < 5 ? 75 : 20,
@@ -471,6 +486,21 @@ function sanitizeEntry(entry: AfetivoEntry): AfetivoEntry {
       'hyperfocusPresent',
       'hyperfocusNotes',
       'unmetIntentionNotes',
+      'domainFlags',
+      'domainOther',
+      'anxietyScore',
+      'stressScore',
+      'sadnessScore',
+      'urgeScore',
+      'isolationScore',
+      'compulsionLevel',
+      'urgeDescription',
+      'behaviorDescription',
+      'behaviorFunctions',
+      'behaviorFunctionNote',
+      'consequence',
+      'impulsiveSpending',
+      'timeToBaseline',
     ]);
     if (fixture && Object.keys(fixture).filter(key => !ignored.has(key)).every(key =>
       JSON.stringify(entry[key as keyof AfetivoEntry]) === JSON.stringify(fixture[key as keyof AfetivoEntry]))) {
@@ -705,7 +735,7 @@ export function exportDataAsCSV(): string {
     'Tags_Personalizadas',
     'Rotina_Medicacoes_Suplementos',
     'Notas_Diario',
-    'Notas_Gratidao', 'Escala_Humor', 'Tipo_Registro', 'Ativacao_1a5', 'Contextos', 'Proximo_Passo', 'Estrategia_Avaliacao', 'Secoes_Respondidas', 'Demonstracao', 'Clareza_Mental_1a5', 'Hiperfoco_Percebido', 'Hiperfoco_Descricao', 'Pretendia_Mas_Nao_Consegui',
+    'Notas_Gratidao', 'Escala_Humor', 'Tipo_Registro', 'Ativacao_1a5', 'Contextos', 'Proximo_Passo', 'Estrategia_Avaliacao', 'Secoes_Respondidas', 'Demonstracao', 'Clareza_Mental_1a5', 'Hiperfoco_Percebido', 'Hiperfoco_Descricao', 'Pretendia_Mas_Nao_Consegui', 'Dominios', 'Outro_Dominio', 'Ansiedade_0a10', 'Estresse_0a10', 'Tristeza_0a10', 'Impulso_Compulsao_0a10', 'Falta_Isolamento_0a10', 'Classificacao_Compulsao', 'Descricao_Impulso', 'Comportamento_Resposta', 'Funcoes_Comportamento', 'Funcao_Em_Palavras', 'Consequencia', 'Gasto_Impulsivo_Reais', 'Tempo_Para_Voltar_Ao_Eixo',
   ];
 
   const escapeCsv = (str: string | number | boolean | null | undefined) => {
@@ -772,7 +802,7 @@ export function exportDataAsCSV(): string {
       escapeCsv(tagsStr),
       escapeCsv(medIntakesStr),
       escapeCsv(e.journalNotes),
-      escapeCsv(e.gratitudeNotes), escapeCsv(e.moodScale ?? 'legacy'), escapeCsv(e.recordKind ?? 'legacy'), escapeCsv(e.activationLevel), escapeCsv(e.contexts?.join('; ')), escapeCsv(e.nextStep), escapeCsv(e.strategyEffect), escapeCsv(e.observedSections?.join('; ')), escapeCsv(Boolean(e.isDemo)), escapeCsv(e.mentalClarityLevel), escapeCsv(e.hyperfocusPresent == null ? null : e.hyperfocusPresent ? 'Sim' : 'Não'), escapeCsv(e.hyperfocusNotes), escapeCsv(e.unmetIntentionNotes),
+      escapeCsv(e.gratitudeNotes), escapeCsv(e.moodScale ?? 'legacy'), escapeCsv(e.recordKind ?? 'legacy'), escapeCsv(e.activationLevel), escapeCsv(e.contexts?.join('; ')), escapeCsv(e.nextStep), escapeCsv(e.strategyEffect), escapeCsv(e.observedSections?.join('; ')), escapeCsv(Boolean(e.isDemo)), escapeCsv(e.mentalClarityLevel), escapeCsv(e.hyperfocusPresent == null ? null : e.hyperfocusPresent ? 'Sim' : 'Não'), escapeCsv(e.hyperfocusNotes), escapeCsv(e.unmetIntentionNotes), escapeCsv(e.domainFlags?.join('; ')), escapeCsv(e.domainOther), escapeCsv(e.anxietyScore), escapeCsv(e.stressScore), escapeCsv(e.sadnessScore), escapeCsv(e.urgeScore), escapeCsv(e.isolationScore), escapeCsv(e.compulsionLevel), escapeCsv(e.urgeDescription), escapeCsv(e.behaviorDescription), escapeCsv(e.behaviorFunctions?.join('; ')), escapeCsv(e.behaviorFunctionNote), escapeCsv(e.consequence), escapeCsv(e.impulsiveSpending), escapeCsv(e.timeToBaseline),
     ].join(',');
   });
 

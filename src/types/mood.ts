@@ -99,6 +99,21 @@ export interface AfetivoEntry {
   hyperfocusPresent: boolean | null;
   hyperfocusNotes: string | null;
   unmetIntentionNotes: string | null;
+  domainFlags?: string[] | null;
+  domainOther?: string | null;
+  anxietyScore?: number | null; // 0 to 10
+  stressScore?: number | null; // 0 to 10
+  sadnessScore?: number | null; // 0 to 10
+  urgeScore?: number | null; // 0 to 10
+  isolationScore?: number | null; // 0 to 10
+  compulsionLevel?: "none" | "risk" | "mild" | "yes" | null;
+  urgeDescription?: string | null;
+  behaviorDescription?: string | null;
+  behaviorFunctions?: string[] | null;
+  behaviorFunctionNote?: string | null;
+  consequence?: string | null;
+  impulsiveSpending?: number | null;
+  timeToBaseline?: string | null;
   sleepHours: number | null;
   sleepQuality: "poor" | "fair" | "good" | "restorative" | null;
   sleepLatencyMinutes?: number;
@@ -148,6 +163,9 @@ export interface ClinicalPatternAnalysis {
   suggestedStrategies?: string[];
   protectiveInsights?: string;
   physicalActivityCorrelation?: string;
+  funcoes_comportamento_frequentes?: string[];
+  dominios_mais_ativados?: string[];
+  escalas_e_compulsao?: string[];
 }
 
 export const MOOD_LEVEL_CONFIG: Record<

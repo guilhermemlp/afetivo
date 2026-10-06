@@ -54,6 +54,46 @@ export const PatternAnalyzer: React.FC<Props> = ({
           neutro ou ausência de acontecimentos.
         </p>
       </div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="border rounded-xl p-4 space-y-2 bg-white dark:bg-stone-900">
+          <h3 className="font-semibold">Funções percebidas</h3>
+          {local.funcoes_comportamento_frequentes?.length ? (
+            <ul className="space-y-2">
+              {local.funcoes_comportamento_frequentes.map((value) => (
+                <li key={value}>{value}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>Nenhuma função do comportamento informada ainda.</p>
+          )}
+          <p className="text-sm text-stone-500">
+            Mostra frequência nos registros, sem avaliar ou diagnosticar.
+          </p>
+        </div>
+        <div className="border rounded-xl p-4 space-y-2 bg-white dark:bg-stone-900">
+          <h3 className="font-semibold">Domínios mais presentes</h3>
+          {local.dominios_mais_ativados?.length ? (
+            <ul className="space-y-2">
+              {local.dominios_mais_ativados.map((value) => (
+                <li key={value}>{value}</li>
+              ))}
+            </ul>
+          ) : (
+            <p>Nenhum domínio informado ainda.</p>
+          )}
+          <p className="text-sm text-stone-500">
+            Presença frequente não comprova que um domínio causou o ocorrido.
+          </p>
+        </div>
+        <div className="border rounded-xl p-4 space-y-2 bg-white dark:bg-stone-900">
+          <h3 className="font-semibold">Escalas e compulsão</h3>
+          <ul className="space-y-2 text-sm">
+            {(local.escalas_e_compulsao ?? []).map((value) => (
+              <li key={value}>{value}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="border rounded-xl p-4 space-y-2 bg-white dark:bg-stone-900">
           <h3 className="font-semibold">Contextos relatados</h3>

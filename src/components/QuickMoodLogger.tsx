@@ -1,20 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Check, X } from 'lucide-react';
 import { useModalFocus } from '../hooks/useModalFocus';
-import { Check, X, Trash2 } from 'lucide-react';
 import {
   AfetivoEntry,
-  Medication,
-  MoodScore,
   ImpulsiveBehavior,
+  Medication,
   PhysicalActivity,
 } from '../types/mood';
-import {
-  CONTEXT_OPTIONS,
-  VALENCE_LABELS,
-  OUTCOME_LABELS,
-  EFFECT_LABELS,
-  moodLabel,
-} from '../services/observations';
+import { moodLabel } from '../services/observations';
 import { localDate, isValidDate } from '../services/dates';
 import {
   clearEntryDraft,
@@ -22,6 +15,17 @@ import {
   saveEntryDraft,
 } from '../services/entryDraft';
 import { useConfirmation } from './ConfirmationProvider';
+import {
+  ActivationSelector,
+  QuickChainScales,
+  ValenceSelector,
+} from './quickMoodLogger/QuickSelectors';
+import { OptionalEntryDetails } from './quickMoodLogger/OptionalEntryDetails';
+import {
+  buttonClass,
+  fieldClass,
+  ObservedSection,
+} from './quickMoodLogger/shared';
 
 interface Props {
   medications: Medication[];
@@ -29,11 +33,7 @@ interface Props {
   onSave: (entry: AfetivoEntry) => Promise<boolean> | boolean;
   onClose: () => void;
 }
-const field =
-  'w-full min-w-0 min-h-11 border border-stone-300 dark:border-stone-700 rounded-lg p-2 bg-white dark:bg-stone-900';
-const button =
-  'border border-stone-300 dark:border-stone-700 rounded-lg px-3 py-2 cursor-pointer aria-pressed:bg-teal-100 dark:aria-pressed:bg-teal-900';
-const quickChoiceButton = `${button} min-h-12 min-w-11 w-full touch-manipulation px-2 py-2 text-sm font-medium leading-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 aria-pressed:border-teal-700 aria-pressed:ring-2 aria-pressed:ring-teal-600/30`;
+
 const blankEntry = (): AfetivoEntry => ({
   id: crypto.randomUUID(),
   schemaVersion: 3,
@@ -53,6 +53,21 @@ const blankEntry = (): AfetivoEntry => ({
   hyperfocusPresent: null,
   hyperfocusNotes: null,
   unmetIntentionNotes: null,
+  domainFlags: null,
+  domainOther: null,
+  anxietyScore: null,
+  stressScore: null,
+  sadnessScore: null,
+  urgeScore: null,
+  isolationScore: null,
+  compulsionLevel: null,
+  urgeDescription: null,
+  behaviorDescription: null,
+  behaviorFunctions: null,
+  behaviorFunctionNote: null,
+  consequence: null,
+  impulsiveSpending: null,
+  timeToBaseline: null,
   sleepHours: null,
   sleepQuality: null,
   emotions: [],
@@ -68,6 +83,7 @@ const blankEntry = (): AfetivoEntry => ({
   journalNotes: '',
   createdAt: Date.now(),
 });
+
 export const QuickMoodLogger: React.FC<Props> = ({
   medications,
   initialEntry,
@@ -80,9 +96,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
     initialEntry ? null : loadEntryDraft(),
   ).current;
   const [entry, setEntry] = useState<AfetivoEntry>(() =>
-    initialEntry
-      ? { ...initialEntry }
-      : restoredDraft?.entry ?? blankEntry(),
+    initialEntry ? { ...initialEntry } : restoredDraft?.entry ?? blankEntry(),
   );
   const [emotionText, setEmotionText] = useState(entry.emotions.join(', '));
   const [supportText, setSupportText] = useState(
@@ -143,31 +157,26 @@ export const QuickMoodLogger: React.FC<Props> = ({
     setDraftRecovered(false);
     setDraftMessage('');
   };
+
   const change = (patch: Partial<AfetivoEntry>) => {
     markDraftChanged();
-    setEntry((e) => ({ ...e, ...patch }));
+    setEntry((current) => ({ ...current, ...patch }));
   };
+
   const observed = (
-    section: NonNullable<AfetivoEntry['observedSections']>[number],
+    section: ObservedSection,
     patch: Partial<AfetivoEntry>,
   ) => {
     markDraftChanged();
-    setEntry((e) => ({
-      ...e,
+    setEntry((current) => ({
+      ...current,
       ...patch,
-      observedSections: [...new Set([...(e.observedSections ?? []), section])],
+      observedSections: [
+        ...new Set([...(current.observedSections ?? []), section]),
+      ],
     }));
   };
-  const toggle = (
-    key: 'contexts' | 'emotions' | 'protectiveFactors',
-    value: string,
-    section: NonNullable<AfetivoEntry['observedSections']>[number],
-  ) =>
-    observed(section, {
-      [key]: (entry[key] ?? []).includes(value)
-        ? (entry[key] ?? []).filter((v) => v !== value)
-        : [...(entry[key] ?? []), value],
-    });
+
   const save = async () => {
     if (saving || saved) return;
     setError('');
@@ -193,11 +202,16 @@ export const QuickMoodLogger: React.FC<Props> = ({
       setSaving(false);
       setSaved(true);
       closeTimer.current = setTimeout(onClose, 650);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível salvar.');
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : 'Não foi possível salvar.',
+      );
       setSaving(false);
     }
   };
+
   const discardDraft = async () => {
     if (
       !(await confirm(
@@ -219,19 +233,23 @@ export const QuickMoodLogger: React.FC<Props> = ({
       'Rascunho descartado. Você pode começar de novo quando quiser.',
     );
   };
-  const impulse = (id: string, patch: Partial<ImpulsiveBehavior>) =>
+
+  const changeImpulse = (id: string, patch: Partial<ImpulsiveBehavior>) =>
     observed('impulses', {
-      impulsiveBehaviors: entry.impulsiveBehaviors.map((i) =>
-        i.id === id ? { ...i, ...patch } : i,
+      impulsiveBehaviors: entry.impulsiveBehaviors.map((impulse) =>
+        impulse.id === id ? { ...impulse, ...patch } : impulse,
       ),
     });
-  const workout = (index: number, patch: Partial<PhysicalActivity>) =>
+
+  const changeWorkout = (index: number, patch: Partial<PhysicalActivity>) =>
     observed('activities', {
-      physicalActivities: (entry.physicalActivities ?? []).map((w, i) =>
-        i === index ? { ...w, ...patch } : w,
+      physicalActivities: (entry.physicalActivities ?? []).map(
+        (activity, activityIndex) =>
+          activityIndex === index ? { ...activity, ...patch } : activity,
       ),
     });
-  const updateFocus = (
+
+  const changeFocus = (
     patch: Pick<
       Partial<AfetivoEntry>,
       | 'mentalClarityLevel'
@@ -256,21 +274,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
       };
     });
   };
-  const historicalMeds = entry.medicationIntakes
-    .filter((i) => !medications.some((m) => m.id === i.medicationId))
-    .map((i) => ({
-      id: i.medicationId,
-      name: i.medicationName,
-      active: false,
-    }));
-  const shownMeds = [
-    ...medications.filter(
-      (m) =>
-        m.active ||
-        entry.medicationIntakes.some((i) => i.medicationId === m.id),
-    ),
-    ...historicalMeds,
-  ];
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-3">
       <section
@@ -279,18 +283,33 @@ export const QuickMoodLogger: React.FC<Props> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="logger-title"
+        aria-describedby="logger-description"
+        aria-busy={saving}
         className="bg-white dark:bg-stone-900 rounded-2xl w-full max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] flex flex-col overflow-hidden"
       >
+        <p id="logger-description" className="sr-only">
+          Registro de humor. Humor, ativação, data e horário são suficientes;
+          todos os campos podem ficar sem resposta.
+        </p>
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {saved ? 'Registro salvo.' : ''}
+        </p>
         <header className="flex justify-between items-center border-b px-3 py-2 sm:p-4">
           <h2 id="logger-title" className="font-semibold text-lg">
             {initialEntry ? 'Editar registro' : 'Como está este momento?'}
           </h2>
           <button
+            type="button"
             aria-label="Fechar registro"
             onClick={onClose}
-            className={`${button} min-h-11 min-w-11 flex items-center justify-center`}
+            className={`${buttonClass} min-h-11 min-w-11 flex items-center justify-center`}
           >
-            <X size={18} />
+            <X size={18} aria-hidden="true" />
           </button>
         </header>
         <div className="overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-5">
@@ -309,88 +328,28 @@ export const QuickMoodLogger: React.FC<Props> = ({
               demonstração.
             </p>
           )}
-          <fieldset className="space-y-2">
-            <legend className="font-semibold">1. Como você se sente?</legend>
-            <p className="text-xs text-stone-500">
-              De desagradável a agradável.
-            </p>
-            {entry.moodScale !== 'valence' && (
-              <p className="text-sm text-amber-700">
-                Escala antiga preservada: {moodLabel(entry)}. Escolher uma
-                resposta abaixo troca a escala deste registro.
-              </p>
-            )}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {([-3, -2, -1, 0, 1, 2, 3] as MoodScore[]).map((n) => (
-                <button
-                  key={n}
-                  className={`${quickChoiceButton} ${entry.moodScale === 'valence' && entry.moodScore === n ? 'bg-teal-100 dark:bg-teal-900' : ''}`}
-                  aria-pressed={
-                    entry.moodScale === 'valence' && entry.moodScore === n
-                  }
-                  onClick={() => change({ moodScore: n, moodScale: 'valence' })}
-                >
-                  {VALENCE_LABELS[n]}
-                </button>
-              ))}
-              <button
-                className={quickChoiceButton}
-                aria-label="Pular humor"
-                aria-pressed={entry.moodScore == null}
-                onClick={() =>
-                  change({ moodScore: null, moodScale: 'valence' })
-                }
-              >
-                Pular
-              </button>
-            </div>
-          </fieldset>
-          <fieldset className="space-y-2">
-            <legend className="font-semibold">2. Quanto você está ativado?</legend>
-            <p className="text-xs text-stone-500">Pouco ↔ muito.</p>
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  aria-label={`Ativação ${n}`}
-                  aria-pressed={entry.activationLevel === n}
-                  className={`${quickChoiceButton} ${entry.activationLevel === n ? 'bg-teal-100 dark:bg-teal-900' : ''}`}
-                  onClick={() => change({ activationLevel: n })}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-            <div>
-              <button
-                className={quickChoiceButton}
-                aria-label="Pular ativação"
-                aria-pressed={entry.activationLevel == null}
-                onClick={() => change({ activationLevel: null })}
-              >
-                Pular
-              </button>
-            </div>
-          </fieldset>
+          <ValenceSelector entry={entry} onChange={change} />
+          <ActivationSelector entry={entry} onChange={change} />
+          <QuickChainScales entry={entry} onChange={change} />
           <div className="grid grid-cols-2 gap-3">
             <label className="min-w-0 text-sm">
               Data
               <input
                 aria-label="Data"
-                className={field}
+                className={fieldClass}
                 type="date"
                 value={entry.date}
-                onChange={(e) => change({ date: e.target.value })}
+                onChange={(event) => change({ date: event.target.value })}
               />
             </label>
             <label className="min-w-0 text-sm">
               Horário
               <input
                 aria-label="Horário"
-                className={field}
+                className={fieldClass}
                 type="time"
                 value={entry.time}
-                onChange={(e) => change({ time: e.target.value })}
+                onChange={(event) => change({ time: event.target.value })}
               />
             </label>
           </div>
@@ -405,674 +364,23 @@ export const QuickMoodLogger: React.FC<Props> = ({
                 setShowDetails(true);
               }}
             >
-              Adicionar mais detalhes
+              Adicionar detalhes da cadeia
             </button>
           )}
           {showDetails && (
-            <div id="optional-entry-details" className="space-y-3">
-              <p className="text-sm text-stone-600 dark:text-stone-400">
-                Tudo aqui é opcional.
-              </p>
-              <label className="block">
-                Tipo de registro
-                <select
-                  aria-label="Tipo de registro"
-                  className={field}
-                  value={entry.recordKind ?? 'legacy'}
-                  onChange={(e) =>
-                    change({
-                      recordKind: e.target.value as AfetivoEntry['recordKind'],
-                    })
-                  }
-                >
-                  {!entry.recordKind && (
-                    <option value="legacy">Antigo, sem tipo definido</option>
-                  )}
-                  <option value="moment">Este momento</option>
-                  <option value="daily_summary">Resumo do dia</option>
-                </select>
-              </label>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Contexto e emoções
-                </summary>
-                <div className="space-y-3 py-3">
-                  <p className="text-sm">
-                    O que estava acontecendo? Isso é contexto, não uma causa
-                    comprovada.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {CONTEXT_OPTIONS.map((v) => (
-                      <button
-                        key={v}
-                        aria-pressed={entry.contexts?.includes(v) ?? false}
-                        className={button}
-                        onClick={() => toggle('contexts', v, 'context')}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-sm">
-                    Se quiser, escolha emoções ou escreva as suas.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      'Alegria',
-                      'Tranquilidade',
-                      'Entusiasmo',
-                      'Frustração',
-                      'Tristeza',
-                      'Ansiedade',
-                      'Irritação',
-                      'Cansaço',
-                    ].map((value) => (
-                      <button
-                        key={value}
-                        className={button}
-                        aria-pressed={entry.emotions.includes(value)}
-                        onClick={() => {
-                          const next = entry.emotions.includes(value)
-                            ? entry.emotions.filter((v) => v !== value)
-                            : [...entry.emotions, value];
-                          observed('context', { emotions: next });
-                          setEmotionText(next.join(', '));
-                        }}
-                      >
-                        {value}
-                      </button>
-                    ))}
-                  </div>
-                  <label>
-                    Emoções (separadas por vírgula)
-                    <input
-                      className={field}
-                      value={emotionText}
-                      onChange={(e) => {
-                        setEmotionText(e.target.value);
-                        observed('context', {
-                          emotions: e.target.value
-                            .split(',')
-                            .map((s) => s.trim())
-                            .filter(Boolean),
-                        });
-                      }}
-                    />
-                  </label>
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Sono e disposição
-                </summary>
-                <div className="space-y-3 py-3">
-                  <p className="text-sm">
-                    Se souber, informe o sono da última noite. Deixar em branco
-                    mantém “não informado”.
-                  </p>
-                  <label>
-                    Horas de sono
-                    <input
-                      aria-label="Horas de sono"
-                      type="number"
-                      min="0"
-                      max="24"
-                      step="0.25"
-                      className={field}
-                      value={entry.sleepHours ?? ''}
-                      onChange={(e) =>
-                        observed('sleep', {
-                          sleepHours:
-                            e.target.value === ''
-                              ? null
-                              : Number(e.target.value),
-                        })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Qualidade do sono
-                    <select
-                      className={field}
-                      value={entry.sleepQuality ?? ''}
-                      onChange={(e) =>
-                        observed('sleep', {
-                          sleepQuality: (e.target.value ||
-                            null) as AfetivoEntry['sleepQuality'],
-                        })
-                      }
-                    >
-                      <option value="">Não informado</option>
-                      <option value="poor">Ruim</option>
-                      <option value="fair">Regular</option>
-                      <option value="good">Boa</option>
-                      <option value="restorative">Restauradora</option>
-                    </select>
-                  </label>
-                  {(
-                    [
-                      'energyLevel',
-                      'anxietyLevel',
-                      'irritabilityLevel',
-                    ] as const
-                  ).map((key, index) => (
-                    <label key={key} className="block">
-                      {
-                        [
-                          'Energia física (1 a 5)',
-                          'Ansiedade (0 a 5)',
-                          'Irritabilidade (0 a 5)',
-                        ][index]
-                      }
-                      <input
-                        type="number"
-                        min={key === 'energyLevel' ? 1 : 0}
-                        max="5"
-                        step="1"
-                        className={field}
-                        value={entry[key] ?? ''}
-                        onChange={(e) =>
-                          change({
-                            [key]:
-                              e.target.value === ''
-                                ? null
-                                : Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                  ))}
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Foco e clareza
-                </summary>
-                <div className="space-y-4 py-3">
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-medium">
-                      Como estava sua clareza mental?
-                    </legend>
-                    <p className="text-xs text-stone-500">
-                      1 = muito nebulosa · 5 = muito clara
-                    </p>
-                    <div className="grid grid-cols-5 gap-2">
-                      {[1, 2, 3, 4, 5].map((level) => (
-                        <button
-                          key={level}
-                          className={`${button} min-h-11 min-w-11 ${entry.mentalClarityLevel === level ? 'bg-teal-100 dark:bg-teal-900' : ''}`}
-                          aria-label={`Clareza mental ${level}`}
-                          aria-pressed={entry.mentalClarityLevel === level}
-                          onClick={() =>
-                            updateFocus({ mentalClarityLevel: level })
-                          }
-                        >
-                          {level}
-                        </button>
-                      ))}
-                    </div>
-                    <button
-                      className={`${button} min-h-11 w-full`}
-                      aria-pressed={entry.mentalClarityLevel === null}
-                      onClick={() =>
-                        updateFocus({ mentalClarityLevel: null })
-                      }
-                    >
-                      Não informar clareza mental
-                    </button>
-                  </fieldset>
-
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm font-medium">
-                      Você percebeu hiperfoco?
-                    </legend>
-                    <div className="grid grid-cols-3 gap-2">
-                      <button
-                        className={`${button} min-h-11 ${entry.hyperfocusPresent === true ? 'bg-teal-100 dark:bg-teal-900' : ''}`}
-                        aria-pressed={entry.hyperfocusPresent === true}
-                        onClick={() =>
-                          updateFocus({ hyperfocusPresent: true })
-                        }
-                      >
-                        Sim
-                      </button>
-                      <button
-                        className={`${button} min-h-11 ${entry.hyperfocusPresent === false ? 'bg-teal-100 dark:bg-teal-900' : ''}`}
-                        aria-pressed={entry.hyperfocusPresent === false}
-                        onClick={() =>
-                          updateFocus({
-                            hyperfocusPresent: false,
-                            hyperfocusNotes: null,
-                          })
-                        }
-                      >
-                        Não
-                      </button>
-                      <button
-                        className={`${button} min-h-11`}
-                        aria-pressed={entry.hyperfocusPresent === null}
-                        onClick={() =>
-                          updateFocus({
-                            hyperfocusPresent: null,
-                            hyperfocusNotes: null,
-                          })
-                        }
-                      >
-                        Não informar
-                      </button>
-                    </div>
-                  </fieldset>
-
-                  {(entry.hyperfocusPresent === true ||
-                    entry.hyperfocusNotes !== null) && (
-                    <label className="block text-sm">
-                      Em quê? (opcional)
-                      <input
-                        aria-label="Descrição do hiperfoco"
-                        className={field}
-                        maxLength={120}
-                        value={entry.hyperfocusNotes ?? ''}
-                        onChange={(event) =>
-                          updateFocus({
-                            hyperfocusNotes: event.target.value || null,
-                          })
-                        }
-                      />
-                    </label>
-                  )}
-
-                  <label className="block text-sm">
-                    O que eu precisava e não consegui fazer hoje? (opcional)
-                    <textarea
-                      aria-label="O que eu precisava e não consegui fazer hoje"
-                      className={field}
-                      maxLength={300}
-                      rows={3}
-                      value={entry.unmetIntentionNotes ?? ''}
-                      onChange={(event) =>
-                        updateFocus({
-                          unmetIntentionNotes: event.target.value || null,
-                        })
-                      }
-                    />
-                    <span className="mt-1 block text-xs text-stone-500">
-                      Só se for útil registrar. Deixar em branco mantém “não
-                      informado”.
-                    </span>
-                  </label>
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Impulsos — sem julgamento
-                </summary>
-                <div className="space-y-3 py-3">
-                  <p className="text-sm">
-                    Sem resposta é diferente de não ter percebido impulsos.
-                  </p>
-                  {entry.impulsiveBehaviors.map((i) => (
-                    <div key={i.id} className="border rounded-lg p-3 space-y-2">
-                      <label>
-                        O que percebeu?
-                        <input
-                          className={field}
-                          value={i.type}
-                          onChange={(e) =>
-                            impulse(i.id, { type: e.target.value })
-                          }
-                        />
-                      </label>
-                      <label>
-                        Intensidade percebida (1 a 5)
-                        <input
-                          className={field}
-                          type="number"
-                          min="1"
-                          max="5"
-                          value={i.intensity ?? ''}
-                          onChange={(e) =>
-                            impulse(i.id, {
-                              intensity:
-                                e.target.value === ''
-                                  ? null
-                                  : Number(e.target.value),
-                            })
-                          }
-                        />
-                      </label>
-                      <label>
-                        O que aconteceu?
-                        <select
-                          className={field}
-                          value={i.outcome ?? ''}
-                          onChange={(e) =>
-                            impulse(i.id, {
-                              outcome: (e.target.value ||
-                                undefined) as ImpulsiveBehavior['outcome'],
-                            })
-                          }
-                        >
-                          <option value="">
-                            Não informado
-                            {i.resisted ? ' (desfecho antigo preservado)' : ''}
-                          </option>
-                          {Object.entries(OUTCOME_LABELS).map(([v, label]) => (
-                            <option key={v} value={v}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        Estratégia escolhida (opcional)
-                        <input
-                          className={field}
-                          value={i.copingUsed ?? ''}
-                          onChange={(e) =>
-                            impulse(i.id, { copingUsed: e.target.value })
-                          }
-                        />
-                      </label>
-                      <button
-                        className={button}
-                        aria-label="Remover impulso"
-                        onClick={() =>
-                          change({
-                            impulsiveBehaviors: entry.impulsiveBehaviors.filter(
-                              (v) => v.id !== i.id,
-                            ),
-                            observedSections: entry.observedSections?.filter(
-                              (v) => v !== 'impulses',
-                            ),
-                          })
-                        }
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className={button}
-                      onClick={() =>
-                        observed('impulses', {
-                          impulsiveBehaviors: [
-                            ...entry.impulsiveBehaviors,
-                            {
-                              id: crypto.randomUUID(),
-                              type: '',
-                              intensity: null,
-                            },
-                          ],
-                        })
-                      }
-                    >
-                      Adicionar impulso
-                    </button>
-                    <button
-                      className={button}
-                      onClick={() =>
-                        observed('impulses', { impulsiveBehaviors: [] })
-                      }
-                    >
-                      Não percebi impulsos
-                    </button>
-                    <button
-                      className={button}
-                      onClick={() =>
-                        change({
-                          impulsiveBehaviors: [],
-                          observedSections: entry.observedSections?.filter(
-                            (v) => v !== 'impulses',
-                          ),
-                        })
-                      }
-                    >
-                      Deixar impulsos sem resposta
-                    </button>
-                  </div>
-                  <p role="status" className="text-sm">
-                    {entry.impulsiveBehaviors.length
-                      ? `${entry.impulsiveBehaviors.length} ocorrência(s)`
-                      : entry.observedSections?.includes('impulses')
-                        ? 'Resposta: não percebi impulsos.'
-                        : 'Impulsos não informados.'}
-                  </p>
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Atividade física
-                </summary>
-                <div className="space-y-3 py-3">
-                  {(entry.physicalActivities ?? []).map((w, index) => (
-                    <div
-                      key={index}
-                      className="border rounded-lg p-3 space-y-2"
-                    >
-                      <label>
-                        Atividade
-                        <input
-                          className={field}
-                          value={w.type}
-                          onChange={(e) =>
-                            workout(index, { type: e.target.value })
-                          }
-                        />
-                      </label>
-                      <label>
-                        Duração em minutos
-                        <input
-                          className={field}
-                          type="number"
-                          min="1"
-                          max="1440"
-                          value={w.durationMinutes ?? ''}
-                          onChange={(e) =>
-                            workout(index, {
-                              durationMinutes:
-                                e.target.value === ''
-                                  ? null
-                                  : Number(e.target.value),
-                            })
-                          }
-                        />
-                      </label>
-                      <label>
-                        Intensidade
-                        <select
-                          className={field}
-                          value={w.intensity ?? ''}
-                          onChange={(e) =>
-                            workout(index, {
-                              intensity: (e.target.value ||
-                                null) as PhysicalActivity['intensity'],
-                            })
-                          }
-                        >
-                          <option value="">Não informada</option>
-                          <option value="light">Leve</option>
-                          <option value="moderate">Moderada</option>
-                          <option value="vigorous">Intensa</option>
-                        </select>
-                      </label>
-                      <button
-                        className={button}
-                        aria-label="Remover atividade"
-                        onClick={() =>
-                          change({
-                            physicalActivities: (
-                              entry.physicalActivities ?? []
-                            ).filter((_, n) => n !== index),
-                            observedSections: entry.observedSections?.filter(
-                              (v) => v !== 'activities',
-                            ),
-                          })
-                        }
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    className={button}
-                    onClick={() =>
-                      observed('activities', {
-                        physicalActivities: [
-                          ...(entry.physicalActivities ?? []),
-                          {
-                            id: crypto.randomUUID(),
-                            type: '',
-                            durationMinutes: null,
-                            intensity: null,
-                          },
-                        ],
-                      })
-                    }
-                  >
-                    Adicionar atividade
-                  </button>
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Medicações e rotina
-                </summary>
-                <div className="space-y-3 py-3">
-                  <p className="text-sm">
-                    Nenhum item é marcado automaticamente. Registre apenas o que
-                    sabe; o diário não sugere doses.
-                  </p>
-                  {shownMeds.map((m) => (
-                    <label key={m.id} className="block">
-                      {m.name}
-                      {!m.active ? ' (histórico / pausado)' : ''}
-                      <select
-                        aria-label={`Uso de ${m.name}`}
-                        className={field}
-                        value={
-                          entry.medicationIntakes.find(
-                            (i) => i.medicationId === m.id,
-                          )?.status ?? ''
-                        }
-                        onChange={(e) =>
-                          observed('medications', {
-                            medicationIntakes: [
-                              ...entry.medicationIntakes.filter(
-                                (i) => i.medicationId !== m.id,
-                              ),
-                              ...(e.target.value
-                                ? [
-                                    {
-                                      ...entry.medicationIntakes.find(
-                                        (i) => i.medicationId === m.id,
-                                      ),
-                                      medicationId: m.id,
-                                      medicationName: m.name,
-                                      status: e.target
-                                        .value as AfetivoEntry['medicationIntakes'][number]['status'],
-                                    },
-                                  ]
-                                : []),
-                            ],
-                          })
-                        }
-                      >
-                        <option value="">Não informado</option>
-                        <option value="taken">Tomado / realizado</option>
-                        <option value="skipped">Não tomado / realizado</option>
-                        <option value="delayed">Atrasado</option>
-                        <option value="extra_dose">
-                          Dose adicional já utilizada
-                        </option>
-                      </select>
-                    </label>
-                  ))}
-                  {!shownMeds.length && <p>Nenhum item ativo cadastrado.</p>}
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Apoio e próximo passo
-                </summary>
-                <div className="space-y-3 py-3">
-                  <label>
-                    O que você experimentou ou recebeu como apoio?
-                    <textarea
-                      className={field}
-                      value={entry.whatHelpedNotes ?? ''}
-                      onChange={(e) =>
-                        observed('support', { whatHelpedNotes: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Apoios (separados por vírgula)
-                    <input
-                      className={field}
-                      value={supportText}
-                      onChange={(e) => {
-                        setSupportText(e.target.value);
-                        observed('support', {
-                          protectiveFactors: e.target.value
-                            .split(',')
-                            .map((s) => s.trim())
-                            .filter(Boolean),
-                        });
-                      }}
-                    />
-                  </label>
-                  <label>
-                    Como foi para você?
-                    <select
-                      aria-label="Avaliação do apoio"
-                      className={field}
-                      value={entry.strategyEffect ?? ''}
-                      onChange={(e) =>
-                        observed('support', {
-                          strategyEffect: (e.target.value ||
-                            undefined) as AfetivoEntry['strategyEffect'],
-                        })
-                      }
-                    >
-                      <option value="">Não avaliei</option>
-                      {Object.entries(EFFECT_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Um próximo passo escolhido por você (opcional)
-                    <input
-                      className={field}
-                      value={entry.nextStep ?? ''}
-                      onChange={(e) =>
-                        observed('support', { nextStep: e.target.value })
-                      }
-                    />
-                  </label>
-                </div>
-              </details>
-              <details>
-                <summary className="cursor-pointer font-semibold py-2">
-                  Notas livres
-                </summary>
-                <label className="block py-3">
-                  Algo que você quer guardar? Não precisa escrever.
-                  <textarea
-                    aria-label="Notas livres"
-                    className={field}
-                    rows={3}
-                    value={entry.journalNotes}
-                    onChange={(e) =>
-                      observed('notes', { journalNotes: e.target.value })
-                    }
-                  />
-                </label>
-              </details>
-            </div>
+            <OptionalEntryDetails
+              entry={entry}
+              medications={medications}
+              emotionText={emotionText}
+              supportText={supportText}
+              onEmotionTextChange={setEmotionText}
+              onSupportTextChange={setSupportText}
+              onChange={change}
+              onObservedChange={observed}
+              onFocusChange={changeFocus}
+              onImpulseChange={changeImpulse}
+              onWorkoutChange={changeWorkout}
+            />
           )}
           {error && (
             <p role="alert" className="text-red-700">
@@ -1081,12 +389,9 @@ export const QuickMoodLogger: React.FC<Props> = ({
           )}
         </div>
         <footer className="shrink-0 border-t p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2 sm:gap-3">
-          <div className="min-h-5 text-xs sm:text-sm" aria-live="polite">
+          <div className="min-h-5 text-xs sm:text-sm">
             {saved && (
-              <p
-                role="status"
-                className="flex items-center gap-2 text-sm text-teal-800 dark:text-teal-300"
-              >
+              <p className="flex items-center gap-2 text-sm text-teal-800 dark:text-teal-300">
                 <Check size={17} aria-hidden="true" />
                 Salvo neste dispositivo.
               </p>
@@ -1109,6 +414,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
           <div className="flex flex-wrap justify-end gap-2 ml-auto">
             {hasDraft && !initialEntry && !saved && (
               <button
+                type="button"
                 className="min-h-11 rounded-lg px-2 py-2 text-xs text-rose-700 dark:text-rose-300 sm:px-3 sm:text-sm"
                 onClick={discardDraft}
               >
@@ -1116,13 +422,15 @@ export const QuickMoodLogger: React.FC<Props> = ({
               </button>
             )}
             <button
-              className={`${button} min-h-11`}
+              type="button"
+              className={`${buttonClass} min-h-11`}
               onClick={onClose}
               disabled={saving || saved}
             >
               Fechar
             </button>
             <button
+              type="button"
               disabled={saving || saved}
               className="bg-teal-800 text-white rounded-lg min-h-11 px-5 sm:px-6 py-2 font-semibold shadow-sm disabled:opacity-60"
               onClick={save}

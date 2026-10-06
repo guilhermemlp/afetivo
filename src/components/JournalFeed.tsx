@@ -5,6 +5,8 @@ import {
   moodLabel,
   impulseLabel,
   EFFECT_LABELS,
+  COMPULSION_LABELS,
+  DOMAIN_LABELS,
 } from "../services/observations";
 interface Props {
   entries: AfetivoEntry[];
@@ -34,6 +36,13 @@ export const JournalFeed: React.FC<Props> = ({
           ...(e.contexts ?? []),
           ...(e.customTags ?? []),
           ...(e.triggers ?? []),
+          ...(e.domainFlags ?? []),
+          e.domainOther,
+          e.urgeDescription,
+          e.behaviorDescription,
+          ...(e.behaviorFunctions ?? []),
+          e.behaviorFunctionNote,
+          e.consequence,
         ]
           .join(" ")
           .toLocaleLowerCase("pt-BR")
@@ -133,6 +142,69 @@ export const JournalFeed: React.FC<Props> = ({
             · <strong>Sono:</strong>{" "}
             {e.sleepHours == null ? "Não informado" : `${e.sleepHours}h`}
           </p>
+          {(e.anxietyScore != null ||
+            e.stressScore != null ||
+            e.sadnessScore != null ||
+            e.urgeScore != null ||
+            e.isolationScore != null) && (
+            <p>
+              <strong>Escalas 0–10:</strong>{" "}
+              {[
+                ["Ansiedade", e.anxietyScore],
+                ["Estresse", e.stressScore],
+                ["Tristeza", e.sadnessScore],
+                ["Impulso", e.urgeScore],
+                ["Isolamento", e.isolationScore],
+              ]
+                .filter(([, value]) => value != null)
+                .map(([label, value]) => `${label}: ${value}`)
+                .join(" · ")}
+            </p>
+          )}
+          {(e.domainFlags?.length || e.domainOther) && (
+            <p>
+              <strong>Domínios:</strong>{" "}
+              {[
+                ...(e.domainFlags ?? []).map(
+                  (domain) => DOMAIN_LABELS[domain] ?? domain,
+                ),
+                ...(e.domainOther ? [e.domainOther] : []),
+              ].join(", ")}
+            </p>
+          )}
+          {(e.compulsionLevel != null ||
+            e.urgeDescription ||
+            e.behaviorDescription ||
+            e.behaviorFunctions?.length ||
+            e.consequence) && (
+            <div className="space-y-1">
+              {e.compulsionLevel != null && (
+                <p>
+                  <strong>Classificação da compulsão:</strong>{" "}
+                  {COMPULSION_LABELS[e.compulsionLevel]}
+                </p>
+              )}
+              {e.urgeDescription && <p>Impulso: {e.urgeDescription}</p>}
+              {e.behaviorDescription && (
+                <p>Comportamento/resposta: {e.behaviorDescription}</p>
+              )}
+              {(e.behaviorFunctions?.length || e.behaviorFunctionNote) && (
+                <p>
+                  <strong>Funções percebidas:</strong>{" "}
+                  {[e.behaviorFunctions?.join(", "), e.behaviorFunctionNote]
+                    .filter(Boolean)
+                    .join(" — ")}
+                </p>
+              )}
+              {e.consequence && <p>Consequência: {e.consequence}</p>}
+              {e.impulsiveSpending != null && (
+                <p>Gasto impulsivo: R$ {e.impulsiveSpending.toFixed(2)}</p>
+              )}
+              {e.timeToBaseline && (
+                <p>Tempo para voltar ao eixo: {e.timeToBaseline}</p>
+              )}
+            </div>
+          )}
           {(e.mentalClarityLevel != null ||
             e.hyperfocusPresent != null ||
             e.hyperfocusNotes != null ||

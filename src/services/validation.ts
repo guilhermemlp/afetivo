@@ -81,6 +81,23 @@ function nullableText(value: unknown): string | null {
   return result.trim() ? result : null;
 }
 
+function scaleScore(value: unknown): number | null {
+  const result = measurement(value, 0, 10);
+  if (result !== null && !Number.isInteger(result))
+    throw new Error("Escala de 0 a 10 inválida.");
+  return result;
+}
+
+function nullableTextList(value: unknown): string[] | null {
+  if (value == null) return null;
+  const result = list(value, (item) => {
+    const result = text(item).trim();
+    if (!result) throw new Error("Item de lista vazio.");
+    return result;
+  });
+  return result.length ? result : null;
+}
+
 export function validateEntries(value: unknown): AfetivoEntry[] {
   const entries = list(value, (item) => {
     const e = object(item);
@@ -160,6 +177,35 @@ export function validateEntries(value: unknown): AfetivoEntry[] {
         e.hyperfocusPresent == null ? null : bool(e.hyperfocusPresent, false),
       hyperfocusNotes: nullableText(e.hyperfocusNotes),
       unmetIntentionNotes: nullableText(e.unmetIntentionNotes),
+      domainFlags: nullableTextList(e.domainFlags),
+      domainOther: nullableText(e.domainOther),
+      anxietyScore: scaleScore(e.anxietyScore),
+      stressScore: scaleScore(e.stressScore),
+      sadnessScore: scaleScore(e.sadnessScore),
+      urgeScore: scaleScore(e.urgeScore),
+      isolationScore: scaleScore(e.isolationScore),
+      compulsionLevel:
+        e.compulsionLevel == null
+          ? null
+          : choice(
+              e.compulsionLevel,
+              ["none", "risk", "mild", "yes"] as const,
+              "none",
+            ),
+      urgeDescription: nullableText(e.urgeDescription),
+      behaviorDescription: nullableText(e.behaviorDescription),
+      behaviorFunctions:
+        e.behaviorFunctions == null && e.behaviorFunction != null
+          ? [nullableText(e.behaviorFunction)].filter(
+              (value): value is string => value !== null,
+            )
+          : nullableTextList(e.behaviorFunctions),
+      behaviorFunctionNote: nullableText(
+        e.behaviorFunctionNote ?? e.behaviorFunctionNotes,
+      ),
+      consequence: nullableText(e.consequence),
+      impulsiveSpending: measurement(e.impulsiveSpending, 0, 1_000_000_000),
+      timeToBaseline: nullableText(e.timeToBaseline),
       sleepHours: measurement(e.sleepHours, 0, 24),
       sleepQuality:
         e.sleepQuality == null

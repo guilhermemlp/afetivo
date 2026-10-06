@@ -28,12 +28,24 @@ test('entry draft preserves nullable answers and quick-mode state', () => {
     isDemo: false,
     moodScore: null,
     activationLevel: null,
+    anxietyScore: 8,
+    domainFlags: ['relacionamentos'],
+    behaviorFunctions: [
+      'Aliviar tensão / ansiedade',
+      'Sentir algum controle',
+    ],
   };
   assert.equal(saveEntryDraft(entry, true), true);
   const restored = loadEntryDraft();
   assert.equal(restored?.entry.id, 'personal-draft');
   assert.equal(restored?.entry.moodScore, null);
   assert.equal(restored?.entry.activationLevel, null);
+  assert.equal(restored?.entry.anxietyScore, 8);
+  assert.deepEqual(restored?.entry.domainFlags, ['relacionamentos']);
+  assert.deepEqual(restored?.entry.behaviorFunctions, [
+    'Aliviar tensão / ansiedade',
+    'Sentir algum controle',
+  ]);
   assert.equal(restored?.showDetails, true);
 });
 

@@ -44,6 +44,21 @@ test("nullable measurements survive validation and missing legacy fields are not
     "hyperfocusPresent",
     "hyperfocusNotes",
     "unmetIntentionNotes",
+    "domainFlags",
+    "domainOther",
+    "anxietyScore",
+    "stressScore",
+    "sadnessScore",
+    "urgeScore",
+    "isolationScore",
+    "compulsionLevel",
+    "urgeDescription",
+    "behaviorDescription",
+    "behaviorFunctions",
+    "behaviorFunctionNote",
+    "consequence",
+    "impulsiveSpending",
+    "timeToBaseline",
   ] as const)
     assert.equal(incomplete[key], null);
   const old = validateEntries([
@@ -163,6 +178,18 @@ test("invalid new fields are rejected before import or persistence", () => {
     { hyperfocusPresent: "sim" },
     { hyperfocusNotes: 3 },
     { unmetIntentionNotes: [] },
+    { domainFlags: "financeiro" },
+    { domainFlags: [""] },
+    { anxietyScore: 11 },
+    { stressScore: -1 },
+    { sadnessScore: 2.5 },
+    { urgeScore: "7" },
+    { isolationScore: Infinity },
+    { compulsionLevel: "high" },
+    { behaviorFunctions: "Escapar da realidade" },
+    { behaviorFunctions: [3] },
+    { behaviorFunctionNote: [] },
+    { impulsiveSpending: -0.01 },
   ])
     assert.throws(() => entry(patch));
   assert.throws(() =>
@@ -196,4 +223,56 @@ test("focus fields remain descriptive and distinguish no from missing", () => {
   assert.match(report, /Atividade pretendida e não concluída: Responder uma mensagem/);
   assert.match(report, /Hiperfoco percebido: não\./);
   assert.match(report, /Hiperfoco percebido: não informado\./);
+});
+
+test("behavior chain stays descriptive and supports multiple functions", () => {
+  const values = [
+    entry({
+      id: "high",
+      domainFlags: ["relacionamentos", "financeiro"],
+      anxietyScore: 8,
+      stressScore: 9,
+      sadnessScore: 5,
+      urgeScore: 7,
+      isolationScore: 6,
+      compulsionLevel: "mild",
+      urgeDescription: "Vontade de comprar",
+      behaviorDescription: "Fiz uma compra",
+      behaviorFunctions: [
+        "Aliviar tensão / ansiedade",
+        "Sentir algum controle",
+      ],
+      behaviorFunctionNote: "Organizar uma sensação difícil",
+      consequence: "Alívio breve",
+      impulsiveSpending: 42.5,
+      timeToBaseline: "40 minutos",
+    }),
+    entry({
+      id: "lower",
+      domainFlags: ["financeiro"],
+      anxietyScore: 4,
+      compulsionLevel: "none",
+      behaviorFunctions: ["Aliviar tensão / ansiedade"],
+    }),
+    entry({ id: "missing-chain" }),
+  ];
+  const analysis = describeEntries(values);
+  assert.deepEqual(analysis.funcoes_comportamento_frequentes, [
+    "Aliviar tensão / ansiedade: 2 de 2 registros",
+    "Sentir algum controle: 1 de 2 registros",
+  ]);
+  assert.deepEqual(analysis.dominios_mais_ativados, [
+    "Dinheiro / financeiro: 2 de 3 registros",
+    "Relacionamentos: 1 de 3 registros",
+  ]);
+  assert.match(analysis.escalas_e_compulsao![0], /1 de 1 registros em 7–10/);
+  assert.match(analysis.escalas_e_compulsao![0], /abaixo de 7, 0 de 1/);
+  const report = buildDeterministicReport(values, [], "Teste", 0);
+  assert.match(report, /FUNÇÕES PERCEBIDAS DO COMPORTAMENTO/);
+  assert.match(
+    report,
+    /Funções percebidas: Aliviar tensão \/ ansiedade, Sentir algum controle/,
+  );
+  assert.match(report, /Gasto impulsivo registrado: R\$ 42\.50/);
+  assert.match(report, /Associação descritiva, sem inferência de causa/);
 });

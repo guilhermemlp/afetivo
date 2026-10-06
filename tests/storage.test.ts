@@ -120,6 +120,21 @@ test('unchanged old demo fixtures are identified without marking edited personal
     hyperfocusPresent,
     hyperfocusNotes,
     unmetIntentionNotes,
+    domainFlags,
+    domainOther,
+    anxietyScore,
+    stressScore,
+    sadnessScore,
+    urgeScore,
+    isolationScore,
+    compulsionLevel,
+    urgeDescription,
+    behaviorDescription,
+    behaviorFunctions,
+    behaviorFunctionNote,
+    consequence,
+    impulsiveSpending,
+    timeToBaseline,
     ...old
   } = generateInitialSeedEntries()[0];
   values.set('afetivo_entries_v2', JSON.stringify([old]));
@@ -131,7 +146,7 @@ test('unchanged old demo fixtures are identified without marking edited personal
 
 test('new fields and explicit unknowns survive JSON and CSV exports', () => {
   const base = generateInitialSeedEntries()[0];
-  saveEntries([{ ...base, schemaVersion: 3, isDemo: false, moodScale: 'valence', recordKind: 'moment', moodScore: null, activationLevel: 4, sleepHours: null, contexts: ['Interrupções'], strategyEffect: 'partly', observedSections: ['context', 'support', 'focus'], nextStep: 'Uma etapa', mentalClarityLevel: 2, hyperfocusPresent: true, hyperfocusNotes: 'Pesquisa concentrada', unmetIntentionNotes: 'Responder uma mensagem', physicalActivities: [{ type: 'Caminhada', durationMinutes: null, intensity: null }], impulsiveBehaviors: [] }]);
+  saveEntries([{ ...base, schemaVersion: 3, isDemo: false, moodScale: 'valence', recordKind: 'moment', moodScore: null, activationLevel: 4, sleepHours: null, contexts: ['Interrupções'], strategyEffect: 'partly', observedSections: ['context', 'support', 'focus', 'impulses'], nextStep: 'Uma etapa', mentalClarityLevel: 2, hyperfocusPresent: true, hyperfocusNotes: 'Pesquisa concentrada', unmetIntentionNotes: 'Responder uma mensagem', domainFlags: ['relacionamentos', 'financeiro'], domainOther: null, anxietyScore: 8, stressScore: 9, sadnessScore: 5, urgeScore: 7, isolationScore: 6, compulsionLevel: 'mild', urgeDescription: 'Vontade de comprar', behaviorDescription: 'Fiz uma compra', behaviorFunctions: ['Aliviar tensão / ansiedade', 'Sentir algum controle'], behaviorFunctionNote: 'Organizar a sensação', consequence: 'Alívio breve', impulsiveSpending: 42.5, timeToBaseline: '40 minutos', physicalActivities: [{ type: 'Caminhada', durationMinutes: null, intensity: null }], impulsiveBehaviors: [] }]);
   const backup = exportDataAsJSON();
   assert.equal(JSON.parse(backup).version, '3.0');
   clearAllUserData();
@@ -146,10 +161,20 @@ test('new fields and explicit unknowns survive JSON and CSV exports', () => {
   assert.equal(record.hyperfocusPresent, true);
   assert.equal(record.hyperfocusNotes, 'Pesquisa concentrada');
   assert.equal(record.unmetIntentionNotes, 'Responder uma mensagem');
+  assert.deepEqual(record.domainFlags, ['relacionamentos', 'financeiro']);
+  assert.equal(record.anxietyScore, 8);
+  assert.equal(record.compulsionLevel, 'mild');
+  assert.deepEqual(record.behaviorFunctions, [
+    'Aliviar tensão / ansiedade',
+    'Sentir algum controle',
+  ]);
+  assert.equal(record.impulsiveSpending, 42.5);
   const csv = exportDataAsCSV();
   assert.match(csv, /Escala_Humor,Tipo_Registro,Ativacao_1a5/);
   assert.match(csv, /"valence","moment","4","Interrupções","Uma etapa","partly"/);
   assert.match(csv, /Clareza_Mental_1a5,Hiperfoco_Percebido,Hiperfoco_Descricao,Pretendia_Mas_Nao_Consegui/);
   assert.match(csv, /"2","Sim","Pesquisa concentrada","Responder uma mensagem"/);
+  assert.match(csv, /Funcoes_Comportamento,Funcao_Em_Palavras,Consequencia/);
+  assert.match(csv, /"Aliviar tensão \/ ansiedade; Sentir algum controle","Organizar a sensação","Alívio breve","42\.5","40 minutos"/);
   assert.doesNotMatch(csv, /nullmin|Dose padrão|Adiou 15min/);
 });

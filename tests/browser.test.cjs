@@ -209,9 +209,9 @@ test('new records are blank and opening optional sections does not create answer
   );
   assert.equal(await page.locator('details').count(), 0);
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
-  assert.equal(await page.locator('details').count(), 8);
+  assert.equal(await page.locator('details').count(), 10);
   await page.getByText('Sono e disposição', { exact: true }).click();
   assert.equal(
     await page
@@ -224,7 +224,7 @@ test('new records are blank and opening optional sections does not create answer
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('status')
-    .filter({ hasText: 'Salvo neste dispositivo.' })
+    .filter({ hasText: 'Registro salvo.' })
     .waitFor();
   await page
     .getByRole('button', { name: 'Fechar registro' })
@@ -240,12 +240,137 @@ test('new records are blank and opening optional sections does not create answer
     'hyperfocusPresent',
     'hyperfocusNotes',
     'unmetIntentionNotes',
+    'domainFlags',
+    'domainOther',
+    'anxietyScore',
+    'stressScore',
+    'sadnessScore',
+    'urgeScore',
+    'isolationScore',
+    'compulsionLevel',
+    'urgeDescription',
+    'behaviorDescription',
+    'behaviorFunctions',
+    'behaviorFunctionNote',
+    'consequence',
+    'impulsiveSpending',
+    'timeToBaseline',
     'sleepHours',
     'sleepQuality',
   ])
     assert.equal(saved[key], null);
   assert.deepEqual(saved.medicationIntakes, []);
   assert.deepEqual(saved.observedSections, []);
+});
+
+test('behavior chain keeps quick scales optional and stores multiple functions', async () => {
+  await seed('clear');
+  await page
+    .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  assert.equal(
+    await page.getByText('A. Gatilho e domínio', { exact: true }).count(),
+    0,
+  );
+  await page
+    .getByRole('combobox', { name: 'Ansiedade de 0 a 10', exact: true })
+    .selectOption('8');
+  await page
+    .getByRole('combobox', {
+      name: 'Impulso / compulsão de 0 a 10',
+      exact: true,
+    })
+    .selectOption('7');
+  await page
+    .getByRole('combobox', {
+      name: 'Falta / isolamento de 0 a 10',
+      exact: true,
+    })
+    .selectOption('6');
+  await page
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
+    .click();
+
+  await page.getByText('A. Gatilho e domínio', { exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Gatilho / contexto (opcional)' })
+    .fill('Conversa difícil e uma cobrança inesperada');
+  await page
+    .getByRole('button', { name: 'Relacionamentos', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Dinheiro / financeiro', exact: true })
+    .click();
+
+  await page.getByText('B. Estado interno', { exact: true }).click();
+  await page
+    .getByRole('combobox', { name: 'Estresse / nervosismo (0–10)' })
+    .selectOption('9');
+  await page
+    .getByRole('combobox', { name: 'Tristeza / angústia (0–10)' })
+    .selectOption('5');
+
+  const impulse = page.locator('details').filter({
+    hasText: 'C. Impulso e comportamento',
+  });
+  await impulse.getByText('C. Impulso e comportamento', { exact: true }).click();
+  await impulse.getByRole('button', { name: 'Leve', exact: true }).click();
+  await impulse
+    .getByRole('textbox', { name: 'Descrição do impulso (opcional)' })
+    .fill('Vontade de comprar para aliviar');
+  await impulse
+    .getByRole('textbox', {
+      name: 'Comportamento / resposta — o que você fez? (opcional)',
+    })
+    .fill('Abri a loja e fiz uma compra');
+  await impulse
+    .getByRole('button', {
+      name: 'Registrar gasto impulsivo, se fizer sentido',
+      exact: true,
+    })
+    .click();
+  await impulse
+    .getByRole('spinbutton', { name: 'Gasto impulsivo em reais' })
+    .fill('42.50');
+
+  const functional = page.locator('details').filter({
+    hasText: 'D. Função e consequência',
+  });
+  await functional
+    .getByText('D. Função e consequência', { exact: true })
+    .click();
+  await functional
+    .getByRole('button', { name: 'Aliviar tensão / ansiedade', exact: true })
+    .click();
+  await functional
+    .getByRole('button', { name: 'Sentir algum controle', exact: true })
+    .click();
+  await functional
+    .getByRole('textbox', { name: 'Complemento da função do comportamento' })
+    .fill('Organizar uma sensação difícil');
+  await functional
+    .getByRole('textbox', { name: 'Consequência percebida depois (opcional)' })
+    .fill('Alívio breve e preocupação com o gasto');
+
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Fechar registro' })
+    .waitFor({ state: 'hidden' });
+  const saved = (await data('afetivo_entries_v2'))[0];
+  assert.equal(saved.schemaVersion, 3);
+  assert.equal(saved.anxietyScore, 8);
+  assert.equal(saved.urgeScore, 7);
+  assert.equal(saved.isolationScore, 6);
+  assert.deepEqual(saved.domainFlags, ['relacionamentos', 'financeiro']);
+  assert.equal(saved.stressScore, 9);
+  assert.equal(saved.sadnessScore, 5);
+  assert.equal(saved.compulsionLevel, 'mild');
+  assert.deepEqual(saved.behaviorFunctions, [
+    'Aliviar tensão / ansiedade',
+    'Sentir algum controle',
+  ]);
+  assert.equal(saved.impulsiveSpending, 42.5);
+  assert.ok(saved.observedSections.includes('impulses'));
 });
 
 test('focus and clarity fields stay optional and preserve null, no and yes separately', async () => {
@@ -255,7 +380,7 @@ test('focus and clarity fields stay optional and preserve null, no and yes separ
     .click();
   assert.equal(await page.getByText('Foco e clareza', { exact: true }).count(), 0);
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
   const focus = page.locator('details').filter({ hasText: 'Foco e clareza' });
   await focus.getByText('Foco e clareza', { exact: true }).click();
@@ -288,7 +413,7 @@ test('focus and clarity fields stay optional and preserve null, no and yes separ
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
   const secondFocus = page
     .locator('details')
@@ -316,9 +441,9 @@ test('automatic draft survives closing, restores quick mode and clears after dis
     null,
   );
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
-  await page.getByText('Notas livres', { exact: true }).click();
+  await page.getByText('E. Proteção e recuperação', { exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Notas livres', exact: true })
     .fill('Uma ideia que quero retomar.');
@@ -340,14 +465,14 @@ test('automatic draft survives closing, restores quick mode and clears after dis
     .getByRole('status')
     .filter({ hasText: 'Rascunho recuperado neste dispositivo.' })
     .waitFor();
-  assert.equal(await page.locator('details').count(), 8);
+  assert.equal(await page.locator('details').count(), 10);
   assert.equal(
     await page
       .getByRole('button', { name: 'Agradável', exact: true })
       .getAttribute('aria-pressed'),
     'true',
   );
-  await page.getByText('Notas livres', { exact: true }).click();
+  await page.getByText('E. Proteção e recuperação', { exact: true }).click();
   assert.equal(
     await page
       .getByRole('textbox', { name: 'Notas livres', exact: true })
@@ -631,9 +756,11 @@ test('removing the last impulse does not recreate it when saving', async () => {
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
-  await page.getByText('Impulsos — sem julgamento', { exact: true }).click();
+  await page
+    .getByText('Ocorrências detalhadas de impulso', { exact: true })
+    .click();
   await page
     .getByRole('button', { name: 'Adicionar impulso', exact: true })
     .click();
@@ -686,9 +813,11 @@ test('reports stay local and explicit absent impulses differ from skipped questi
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
-  await page.getByText('Impulsos — sem julgamento', { exact: true }).click();
+  await page
+    .getByText('Ocorrências detalhadas de impulso', { exact: true })
+    .click();
   await page
     .getByRole('button', { name: 'Não percebi impulsos', exact: true })
     .click();
@@ -718,10 +847,23 @@ test('first visit has no fictitious entries and keyboard focus returns after Esc
     exact: true,
   });
   await trigger.click();
+  const logger = page.getByRole('dialog', { name: 'Como está este momento?' });
+  assert.equal(await logger.getAttribute('aria-labelledby'), 'logger-title');
   assert.equal(
-    await page
-      .getByRole('dialog')
-      .evaluate((element) => element === document.activeElement),
+    await logger.getAttribute('aria-describedby'),
+    'logger-description',
+  );
+  assert.match(
+    await page.locator('#logger-description').innerText(),
+    /todos os campos podem ficar sem resposta/i,
+  );
+  assert.equal(
+    await logger.evaluate((element) => element === document.activeElement),
+    true,
+  );
+  await trigger.evaluate((element) => element.focus());
+  assert.equal(
+    await logger.evaluate((element) => element === document.activeElement),
     true,
   );
   await page.keyboard.press('Shift+Tab');
@@ -753,33 +895,34 @@ test('mobile records support context, multiple emotions, optional help and daily
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
   await page
-    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .getByRole('button', { name: 'Adicionar detalhes da cadeia', exact: true })
     .click();
   await page
     .getByRole('combobox', { name: 'Tipo de registro', exact: true })
     .selectOption('daily_summary');
   await page.getByRole('button', { name: 'Neutro', exact: true }).click();
   await page.getByRole('button', { name: 'Ativação 5', exact: true }).click();
-  await page.getByText('Contexto e emoções', { exact: true }).click();
+  await page.getByText('A. Gatilho e domínio', { exact: true }).click();
   await page.getByRole('button', { name: 'Interrupções', exact: true }).click();
+  await page.getByText('B. Estado interno', { exact: true }).click();
   await page.getByRole('button', { name: 'Frustração', exact: true }).click();
   await page.getByRole('button', { name: 'Entusiasmo', exact: true }).click();
   await page
     .getByRole('textbox', {
-      name: 'Emoções (separadas por vírgula)',
+      name: 'Emoções em suas palavras (separadas por vírgula)',
       exact: true,
     })
     .press('End');
   await page
     .getByRole('textbox', {
-      name: 'Emoções (separadas por vírgula)',
+      name: 'Emoções em suas palavras (separadas por vírgula)',
       exact: true,
     })
     .pressSequentially(', Curiosidade');
-  await page.getByText('Apoio e próximo passo', { exact: true }).click();
+  await page.getByText('E. Proteção e recuperação', { exact: true }).click();
   await page
     .getByRole('textbox', {
-      name: 'Apoios (separados por vírgula)',
+      name: 'Apoios em palavras curtas (separados por vírgula)',
       exact: true,
     })
     .pressSequentially('Pausa, Conversa');

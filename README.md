@@ -54,13 +54,14 @@ O sistema foi construído para:
 | Contexto      | Emoções, situações relatadas e notas livres                      |
 | Bem-estar     | Sono, energia física, ansiedade e irritabilidade                 |
 | Foco          | Clareza mental, hiperfoco e atividade pretendida não concluída   |
+| Cadeia        | Gatilho, estado, impulso, função, consequência e recuperação     |
 | Impulsos      | Ocorrência, intensidade, desfecho e estratégia escolhida         |
 | Atividade     | Tipo, duração e intensidade de atividade física                  |
 | Apoios        | Apoio percebido, avaliação subjetiva e próximo passo             |
 | Rotina        | Cadastro de medicamentos, suplementos ou outros itens de rotina  |
 | Histórico     | Busca, filtros, edição e exclusão com confirmação interna        |
 | Visualização  | Gráfico por período e escalas antigas preservadas separadamente  |
-| Análise       | Cobertura dos registros, contextos frequentes e apoios avaliados |
+| Análise       | Funções, domínios, escalas e relações descritivas                |
 | Relatório     | Texto local por período, cópia, download e impressão/PDF         |
 | Portabilidade | Exportação JSON completa e CSV para planilhas                    |
 | Backup        | Cópias versionadas em pasta sincronizada pelo Google Drive       |
@@ -70,11 +71,19 @@ análises e dos relatórios pessoais.
 
 ### Registro rápido e rascunho local
 
-O novo registro começa apenas com humor, ativação, data e horário. As demais
-seções aparecem somente ao escolher **Adicionar mais detalhes**. Nenhuma
-resposta é obrigatória.
+O novo registro começa com humor, ativação, data, horário e três escalas
+compactas opcionais de 0 a 10: ansiedade, impulso/compulsão e
+falta/isolamento. As demais seções aparecem somente ao escolher **Adicionar
+detalhes da cadeia**. Nenhuma resposta é obrigatória; campos deixados em branco
+permanecem `null`.
 
-Os campos de foco ficam em **Adicionar mais detalhes → Foco e clareza**. A
+Os detalhes seguem a sequência **Gatilho e domínio → Estado interno → Impulso
+e comportamento → Função e consequência → Proteção e recuperação**. Função do
+comportamento aceita várias tags prontas e um complemento livre. A pergunta é
+descritiva — “para que pareceu servir naquele momento?” — e não atribui culpa,
+diagnóstico ou justificativa.
+
+Os campos de foco ficam em **Adicionar detalhes da cadeia → Foco e clareza**. A
 seção é recolhida por padrão e diferencia “não”, “sim” e “não informado”.
 Clareza mental usa uma escala descritiva de 1 (muito nebulosa) a 5 (muito
 clara). Descrição do hiperfoco e atividade pretendida não concluída são textos
@@ -361,8 +370,8 @@ rejeitados. A substituição exige confirmação dentro da aplicação.
 O CSV é destinado a planilhas e inclui os campos relevantes dos registros. Os
 textos são escapados e valores iniciados como fórmulas são neutralizados para
 reduzir o risco de execução ao abrir o arquivo em uma planilha.
-Clareza mental, presença de hiperfoco, descrição curta e atividade pretendida
-não concluída possuem colunas próprias; respostas ausentes ficam vazias.
+Clareza mental, cadeia comportamental, funções marcadas, escalas 0–10 e gasto
+impulsivo possuem colunas próprias; respostas ausentes ficam vazias.
 
 ### Recuperação em outro computador
 
