@@ -336,19 +336,30 @@ FORMATO DE SAÍDA OBRIGATÓRIO (JSON):
 }
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.3,
-      },
-    });
+    let text = '';
+    try {
+      const aiPromise = ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.3,
+        },
+      });
 
-    const text = response.text || '';
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI timeout')), 6000)
+      );
+
+      const response: any = await Promise.race([aiPromise, timeoutPromise]);
+      text = response.text || '';
+    } catch (aiErr) {
+      console.warn('Gemini pattern analysis timed out or unavailable, using deterministic synthesis:', aiErr);
+    }
+
     let parsed;
     try {
-      parsed = JSON.parse(text);
+      parsed = text ? JSON.parse(text) : generateLocalEmotionalSynthesis(entries, medications);
       // Ensure backwards compatible fields exist
       if (!parsed.summary && parsed.resumo_geral) parsed.summary = parsed.resumo_geral;
       if (!parsed.earlyWarningSigns && parsed.sinais_de_alerta_previos) parsed.earlyWarningSigns = parsed.sinais_de_alerta_previos;
@@ -365,61 +376,93 @@ FORMATO DE SAÍDA OBRIGATÓRIO (JSON):
       parsed = generateLocalEmotionalSynthesis(entries, medications);
     }
 
-    return res.json({ success: true, source: 'gemini-3.8-flash', analysis: parsed });
+    return res.json({
+      success: true,
+      source: text ? 'gemini-3.8-flash' : 'analise-deterministica',
+      analysis: parsed,
+    });
   } catch (error: any) {
     console.error('Error analyzing patterns:', error);
-    const fallback = generateLocalEmotionalSynthesis(req.body.entries, req.body.medications);
+    const fallback = generateLocalEmotionalSynthesis(req.body?.entries || [], req.body?.medications || []);
     return res.json({ success: true, source: 'analise-local', analysis: fallback });
   }
 });
 
-// POST /api/clinical-report
-app.post('/api/clinical-report', async (req, res) => {
-  try {
-    const { entries, medications, patientName, periodDays } = req.body;
-    const ai = getGeminiClient();
+function buildFullTextReport(
+  fallback: any,
+  entries: any[],
+  medications: any[],
+  userName: string,
+  periodDays: number
+): string {
+  const safeMeds = Array.isArray(medications) ? medications : [];
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  const medsList = safeMeds.length > 0
+    ? safeMeds.map((m: any) => `- ${m.name || 'Item'} ${m.dosage || ''} (${m.frequency || 'conforme rotina'})`).join('\n')
+    : 'Nenhum suplemento ou medicação cadastrado no período.';
 
-    if (!ai) {
-      const fallback = generateLocalEmotionalSynthesis(entries, medications);
-      const textReport = `
-RESUMO DE PADRÕES EMOCIONAIS, HÁBITOS E ROTINA
-Período analisado: Últimos ${periodDays || 30} dias
-Nome: ${patientName || 'Não identificado'}
-Data de emissão: ${new Date().toLocaleDateString('pt-BR')}
+  return `
+========================================================================
+       SISTEMA AFETIVO — RELATÓRIO DE ACOMPANHAMENTO EMOCIONAL
+========================================================================
+Nome: ${userName || 'Guilherme'}
+Período analisado: Últimos ${periodDays || 30} dias (${safeEntries.length} registros diários)
+Data de emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+Foco metodológico: Mapeamento longitudinal de humor (-3 a +3), noites de sono,
+atividades físicas (corrida, musculação, pilates) e repertório de autorregulação.
+========================================================================
 
 1. VISÃO GERAL DO PERÍODO
-${fallback.summary}
+${fallback.resumo_geral || fallback.summary}
 
 2. PADRÕES DE HUMOR E ENERGIA
-${fallback.patterns.map((p) => `- ${p}`).join('\n')}
+${(fallback.patterns || []).map((p: string) => `- ${p}`).join('\n') || '- Registros estáveis mantidos ao longo do período.'}
 
 3. IMPACTO DO SONO E ROTINA
 ${fallback.sleepCorrelation}
 
-4. REGISTRO DE GATILHOS E IMPULSOS
+4. ATIVIDADES FÍSICAS & CRUZAMENTO COM HUMOR E ANSIEDADE
+${fallback.observacao_exercicio || fallback.physicalActivityCorrelation || 'Nenhuma atividade física registrada no período.'}
+
+5. REGISTRO DE GATILHOS E TENSÕES
 ${fallback.clinicalNotes}
 
-5. FATORES DE PROTEÇÃO & O QUE MAIS AJUDOU
-${fallback.protectiveInsights || 'Nenhum fator protetivo registrado no período.'}
-
-6. ATIVIDADES FÍSICAS & CRUZAMENTO COM HUMOR
-${fallback.physicalActivityCorrelation || 'Nenhuma atividade física registrada no período.'}
+6. FATORES DE PROTEÇÃO & ÂNCORAS MAIS EFICAZES
+${(fallback.protecoes_mais_eficazes || []).join(', ') || fallback.protectiveInsights || 'Nenhum fator protetivo registrado no período.'}
 
 7. SINAIS DE ALERTA OBSERVADOS
-${fallback.earlyWarningSigns.map((s) => `- ${s}`).join('\n')}
+${(fallback.sinais_de_alerta_previos || fallback.earlyWarningSigns || []).map((s: string) => `- ${s}`).join('\n') || '- Nenhum sinal crítico detectado.'}
 
-8. MEDICAÇÕES / SUPLEMENTOS EM USO
-${medications.map((m: any) => `- ${m.name} ${m.dosage || ''} (${m.frequency || 'conforme prescrito'})`).join('\n') || 'Nenhum cadastrado.'}
+8. ACOMPANHAMENTO DE ROTINA E SUPLEMENTOS
+${medsList}
 
 9. ESTRATÉGIAS PRÁTICAS SUGERIDAS
-${fallback.suggestedStrategies.map((st) => `- ${st}`).join('\n')}
-`;
-      return res.json({ success: true, reportText: textReport.trim() });
+${(fallback.estrategias_praticas || []).map((st: any) => typeof st === 'string' ? `- ${st}` : `- ${st.situacao}: ${st.acao_sugerida}`).join('\n') || '- Continue priorizando horários regulares de descanso e pausas conscientes.'}
+
+10. PONTO POSITIVO OBSERVADO
+${fallback.ponto_positivo || 'Consistência no autocuidado e no registro sistemático das oscilações de humor.'}
+`.trim();
+}
+
+// POST /api/clinical-report
+app.post('/api/clinical-report', async (req, res) => {
+  const entries = req.body?.entries || [];
+  const medications = req.body?.medications || [];
+  const userName = req.body?.userName || req.body?.patientName || 'Guilherme';
+  const periodDays = req.body?.periodDays || 30;
+
+  try {
+    const ai = getGeminiClient();
+
+    if (!ai) {
+      const fallback = generateLocalEmotionalSynthesis(entries, medications);
+      const textReport = buildFullTextReport(fallback, entries, medications, userName, periodDays);
+      return res.json({ success: true, source: 'deterministico', reportText: textReport });
     }
 
     const prompt = `
-Gere um resumo estruturado, claro e respeitoso sobre o histórico de humor, emoções, hábitos, impulsos, atividade física e proteções do usuário nos últimos ${periodDays || 30} dias.
-Nome: ${patientName || 'Usuário'}
+Gere um resumo estruturado, claro e respeitoso sobre o histórico de humor, emoções, hábitos, impulsos, atividade física e proteções do usuário nos últimos ${periodDays} dias.
+Nome: ${userName}
 IMPORTANTE: NÃO inclua diagnósticos psiquiátricos nem termos de patologia mental. O objetivo é resumir os fatos, métricas de sono, tendências de humor, eventos impulsivos, prática de atividades físicas (corrida, pilates, musculação, etc.) e O QUE AJUDOU a pessoa a atravessar momentos difíceis (fatores de proteção) para auto-análise ou para que o usuário possa discutir com seu médico/terapeuta de forma informada.
 
 Dados:
@@ -438,18 +481,41 @@ Estrutura:
 - Pauta com tópicos relevantes para reflexão ou conversa na próxima consulta.
 `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.3,
-      },
-    });
+    let reportText = '';
+    try {
+      // Promise race with 5000ms timeout to avoid hanging if high demand occurs
+      const aiPromise = ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          temperature: 0.3,
+        },
+      });
 
-    return res.json({ success: true, reportText: response.text || '' });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('AI timeout')), 5000)
+      );
+
+      const response: any = await Promise.race([aiPromise, timeoutPromise]);
+      reportText = response.text || '';
+    } catch (aiErr) {
+      console.warn('Gemini report generation unavailable or timed out, using deterministic report fallback:', aiErr);
+    }
+
+    if (!reportText) {
+      const fallback = generateLocalEmotionalSynthesis(entries, medications);
+      reportText = buildFullTextReport(fallback, entries, medications, userName, periodDays);
+    }
+
+    return res.json({ success: true, source: 'completo', reportText });
   } catch (error) {
     console.error('Error generating report:', error);
-    return res.status(500).json({ error: 'Erro ao gerar relatório de padrões' });
+    const fallback = generateLocalEmotionalSynthesis(entries, medications);
+    return res.json({
+      success: true,
+      source: 'fallback-deterministico',
+      reportText: buildFullTextReport(fallback, entries, medications, userName, periodDays),
+    });
   }
 });
 

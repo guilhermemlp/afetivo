@@ -9,11 +9,12 @@ interface Props {
 }
 
 const CATEGORY_LABELS: Record<MedicationCategory, string> = {
-  mood_stabilizer: 'Regulador / Estabilizador',
-  antidepressant: 'Antidepressivo',
-  anxiolytic: 'Ansiolítico / SOS',
-  sleep_aid: 'Sono / Noite',
+  mood_stabilizer: 'Estabilidade & Equilíbrio',
+  antidepressant: 'Uso Contínuo / Rotina',
+  anxiolytic: 'Momento Pontual / SOS',
+  sleep_aid: 'Sono & Relaxamento',
   supplement: 'Suplemento / Vitaminas',
+  routine: 'Hábito & Autocuidado',
   other: 'Outro',
 };
 

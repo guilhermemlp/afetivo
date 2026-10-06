@@ -363,6 +363,21 @@ export const QuickMoodLogger: React.FC<Props> = ({
           ]
       : [];
 
+    const finalImpulses: ImpulsiveBehavior[] = hasImpulses
+      ? impulses.length > 0
+        ? impulses
+        : [
+            {
+              id: `imp-${Date.now()}`,
+              type: newImpulseType,
+              intensity: newImpulseIntensity,
+              resisted: newImpulseResisted,
+              copingUsed: newImpulseCoping,
+              reflection: newImpulseReflection.trim() || undefined,
+            },
+          ]
+      : [];
+
     const entry: AfetivoEntry = {
       id: initialEntry?.id || `entry-${Date.now()}`,
       date,
@@ -380,7 +395,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
       triggers: selectedTriggers,
       activities: selectedActivities,
       physicalActivities: finalWorkouts,
-      impulsiveBehaviors: hasImpulses ? impulses : [],
+      impulsiveBehaviors: finalImpulses,
       medicationIntakes: medIntakes,
       protectiveFactors: selectedProtections,
       whatHelpedNotes: whatHelpedNotes.trim() || undefined,

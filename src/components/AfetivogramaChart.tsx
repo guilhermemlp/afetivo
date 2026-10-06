@@ -25,9 +25,9 @@ export const AfetivogramaChart: React.FC<Props> = ({
   const now = new Date();
   const filteredEntries = entries.filter((e) => {
     if (timeFrameDays === 0) return true; // all
-    const entryDate = new Date(e.date);
+    const entryDate = new Date(e.date + 'T12:00:00');
     const diffDays = (now.getTime() - entryDate.getTime()) / (1000 * 3600 * 24);
-    return diffDays <= timeFrameDays;
+    return diffDays <= timeFrameDays + 0.5;
   });
 
   // Sort chronologically
@@ -430,7 +430,10 @@ export const AfetivogramaChart: React.FC<Props> = ({
                 <g
                   key={entry.id}
                   className="cursor-pointer transition-transform"
-                  onClick={() => onSelectEntry && onSelectEntry(entry)}
+                  onClick={() => {
+                    setHoveredEntry(isSelected ? null : entry);
+                    if (onSelectEntry) onSelectEntry(entry);
+                  }}
                   onMouseEnter={() => setHoveredEntry(entry)}
                   onMouseLeave={() => setHoveredEntry(null)}
                 >

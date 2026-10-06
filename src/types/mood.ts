@@ -17,7 +17,17 @@ export type MedicationCategory =
   | 'anxiolytic'
   | 'sleep_aid'
   | 'supplement'
+  | 'routine'
   | 'other';
+
+export interface UserProfile {
+  name: string;
+  notes?: string;
+  notificationsEnabled: boolean;
+}
+
+// Backwards compatibility alias
+export type PatientProfile = UserProfile;
 
 export interface Medication {
   id: string;

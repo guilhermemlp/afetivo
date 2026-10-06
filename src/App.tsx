@@ -57,14 +57,20 @@ export default function App() {
 
   // Handlers
   const handleSaveEntry = (newEntry: AfetivoEntry) => {
-    const existingIndex = entries.findIndex((e) => e.id === newEntry.id || e.date === newEntry.date);
+    const existingIndex = entries.findIndex((e) => e.id === newEntry.id);
     let updated: AfetivoEntry[];
 
     if (existingIndex >= 0) {
       updated = [...entries];
       updated[existingIndex] = newEntry;
     } else {
-      updated = [newEntry, ...entries];
+      const sameDateIndex = entries.findIndex((e) => e.date === newEntry.date);
+      if (sameDateIndex >= 0) {
+        updated = [...entries];
+        updated[sameDateIndex] = newEntry;
+      } else {
+        updated = [newEntry, ...entries];
+      }
     }
 
     setEntries(updated);
@@ -465,7 +471,7 @@ export default function App() {
         <ClinicalReportModal
           entries={entries}
           medications={medications}
-          patientName="Guilherme"
+          userName="Guilherme"
           onClose={() => setIsReportOpen(false)}
         />
       )}

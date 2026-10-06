@@ -1,41 +1,40 @@
-import { AfetivoEntry, Medication } from '../types/mood';
+import { AfetivoEntry, Medication, UserProfile, PatientProfile } from '../types/mood';
 
-const ENTRIES_STORAGE_KEY = 'afetivo_entries_v1';
-const MEDICATIONS_STORAGE_KEY = 'afetivo_medications_v1';
-const PATIENT_PROFILE_KEY = 'afetivo_patient_profile_v1';
+const ENTRIES_STORAGE_KEY = 'afetivo_entries_v2';
+const OLD_ENTRIES_STORAGE_KEY = 'afetivo_entries_v1';
+const MEDICATIONS_STORAGE_KEY = 'afetivo_medications_v2';
+const OLD_MEDICATIONS_STORAGE_KEY = 'afetivo_medications_v1';
+const USER_PROFILE_KEY = 'afetivo_user_profile_v2';
+const OLD_PATIENT_PROFILE_KEY = 'afetivo_patient_profile_v1';
 
-export interface PatientProfile {
-  name: string;
-  notes?: string;
-  notificationsEnabled: boolean;
-}
+export type { UserProfile, PatientProfile };
 
 export const INITIAL_MEDICATIONS: Medication[] = [
   {
     id: 'med-1',
-    name: 'Estabilizador / Medicação 1',
-    category: 'mood_stabilizer',
-    dosage: '300mg',
-    frequency: 'daily_night',
-    notes: 'Tomar à noite com água',
+    name: 'Acompanhamento de Rotina Manhã',
+    category: 'supplement',
+    dosage: '1 dose',
+    frequency: 'daily_morning',
+    notes: 'Tomar pela manhã após café para manter constância',
     active: true,
   },
   {
     id: 'med-2',
-    name: 'Medicação para Sono / Rotina',
+    name: 'Suplemento / Magnésio Noturno',
     category: 'sleep_aid',
-    dosage: '50mg',
+    dosage: '300mg',
     frequency: 'daily_night',
-    notes: 'Para ajudar a desacelerar e dormir melhor',
+    notes: 'Para desacelerar e favorecer relaxamento do sono',
     active: true,
   },
   {
     id: 'med-3',
-    name: 'Suplemento / Medicação Manhã',
-    category: 'supplement',
-    dosage: '100mg',
+    name: 'Hidratação & Autocuidado',
+    category: 'other',
+    dosage: '500ml',
     frequency: 'daily_morning',
-    notes: 'Tomar após café da manhã',
+    notes: 'Beber água e fazer pausa consciente',
     active: true,
   },
 ];
@@ -101,7 +100,8 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
       impulsiveBehaviors: [],
       protectiveFactors: ['Praticar atividade física'],
       whatHelpedNotes: 'Fazer o treino de musculação deu uma boa sensação de dever cumprido.',
-      journalNotes: 'Almocei com amigos. Dia leve, tomei as medicações no horário correto.',
+      journalNotes: 'Almocei com amigos. Dia leve, mantive a rotina de hábitos e hidratação no horário correto.',
+      customTags: ['#musculacao', '#social', '#energia'],
       medIntakeStatus: 'taken' as const,
     },
     {
@@ -261,7 +261,8 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
           reflection: 'Fiquei horas no celular sem ânimo para levantar.',
         },
       ],
-      journalNotes: 'Dia de energia muito baixa. Tomei os remédios da rotina e tentei não me cobrar em excesso.',
+      journalNotes: 'Dia de energia mais baixa. Mantive minha hidratação, descansei e procurei não me cobrar em excesso.',
+      customTags: ['#pausa', '#autocuidado', '#recuperacao'],
       medIntakeStatus: 'taken' as const,
     },
     {
@@ -428,6 +429,7 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
       emotions: sc.emotions,
       somaticSymptoms: sc.somaticSymptoms,
       triggers: sc.triggers,
+      customTags: (sc as any).customTags || [],
       activities: sc.activities,
       physicalActivities: (sc as any).physicalActivities || [],
       impulsiveBehaviors: sc.impulsiveBehaviors,
@@ -442,22 +444,84 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
   return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
+// Sanitizer to convert any legacy psychiatric strings or outdated fields into self-regulation terms
+function sanitizeEntry(entry: AfetivoEntry): AfetivoEntry {
+  const e = { ...entry };
+  e.physicalActivities = e.physicalActivities || [];
+  e.protectiveFactors = e.protectiveFactors || [];
+  e.customTags = e.customTags || [];
+
+  if (e.medicationIntakes && Array.isArray(e.medicationIntakes)) {
+    e.medicationIntakes = e.medicationIntakes.map((m) => {
+      let name = m.medicationName || '';
+      if (name.includes('Estabilizador') || name.includes('Medicação 1')) {
+        name = 'Acompanhamento de Rotina Manhã';
+      } else if (name.includes('Medicação para Sono')) {
+        name = 'Suplemento / Magnésio Noturno';
+      } else if (name.includes('Suplemento / Medicação Manhã')) {
+        name = 'Hidratação & Autocuidado';
+      }
+      return { ...m, medicationName: name };
+    });
+  }
+
+  if (e.journalNotes) {
+    e.journalNotes = e.journalNotes
+      .replace(/tomei as medicações no horário correto/gi, 'mantive a rotina de hábitos e hidratação no horário correto')
+      .replace(/remédios da rotina/gi, 'hábitos e rotina diária')
+      .replace(/remédios/gi, 'hábitos de rotina')
+      .replace(/psiquiatra/gi, 'terapeuta');
+  }
+
+  return e;
+}
+
+function sanitizeMedication(med: Medication): Medication {
+  let name = med.name || '';
+  let category = med.category;
+
+  if (name.includes('Estabilizador') || name.includes('Medicação 1')) {
+    name = 'Acompanhamento de Rotina Manhã';
+    category = 'supplement';
+  } else if (name.includes('Medicação para Sono')) {
+    name = 'Suplemento / Magnésio Noturno';
+    category = 'sleep_aid';
+  } else if (name.includes('Suplemento / Medicação Manhã')) {
+    name = 'Hidratação & Autocuidado';
+    category = 'other';
+  }
+
+  return { ...med, name, category };
+}
+
 export function loadEntries(): AfetivoEntry[] {
   try {
-    const raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
+    let raw = localStorage.getItem(ENTRIES_STORAGE_KEY);
     if (!raw) {
+      // Check legacy key for migration
+      const legacyRaw = localStorage.getItem(OLD_ENTRIES_STORAGE_KEY);
+      if (legacyRaw) {
+        try {
+          const legacyParsed = JSON.parse(legacyRaw);
+          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+            const sanitized = legacyParsed.map(sanitizeEntry);
+            localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(sanitized));
+            localStorage.removeItem(OLD_ENTRIES_STORAGE_KEY);
+            return sanitized;
+          }
+        } catch {
+          // fallback to seed
+        }
+      }
+
       const seeded = generateInitialSeedEntries();
       localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(seeded));
       return seeded;
     }
+
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    // Ensure backwards compatibility with older stored entries
-    return parsed.map((entry) => ({
-      ...entry,
-      physicalActivities: entry.physicalActivities || [],
-      protectiveFactors: entry.protectiveFactors || [],
-    }));
+    return parsed.map(sanitizeEntry);
   } catch (err) {
     console.error('Error loading entries from localStorage', err);
     return [];
@@ -466,7 +530,8 @@ export function loadEntries(): AfetivoEntry[] {
 
 export function saveEntries(entries: AfetivoEntry[]): void {
   try {
-    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(entries));
+    const sanitized = entries.map(sanitizeEntry);
+    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.error('Error saving entries to localStorage', err);
   }
@@ -474,13 +539,30 @@ export function saveEntries(entries: AfetivoEntry[]): void {
 
 export function loadMedications(): Medication[] {
   try {
-    const raw = localStorage.getItem(MEDICATIONS_STORAGE_KEY);
+    let raw = localStorage.getItem(MEDICATIONS_STORAGE_KEY);
     if (!raw) {
+      const legacyRaw = localStorage.getItem(OLD_MEDICATIONS_STORAGE_KEY);
+      if (legacyRaw) {
+        try {
+          const legacyParsed = JSON.parse(legacyRaw);
+          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+            const sanitized = legacyParsed.map(sanitizeMedication);
+            localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(sanitized));
+            localStorage.removeItem(OLD_MEDICATIONS_STORAGE_KEY);
+            return sanitized;
+          }
+        } catch {
+          // fallback
+        }
+      }
+
       localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(INITIAL_MEDICATIONS));
       return INITIAL_MEDICATIONS;
     }
+
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_MEDICATIONS;
+    if (!Array.isArray(parsed)) return INITIAL_MEDICATIONS;
+    return parsed.map(sanitizeMedication);
   } catch (err) {
     console.error('Error loading medications', err);
     return INITIAL_MEDICATIONS;
@@ -489,68 +571,111 @@ export function loadMedications(): Medication[] {
 
 export function saveMedications(meds: Medication[]): void {
   try {
-    localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(meds));
+    const sanitized = meds.map(sanitizeMedication);
+    localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(sanitized));
   } catch (err) {
     console.error('Error saving medications', err);
   }
 }
 
-export function loadPatientProfile(): PatientProfile {
+export function loadUserProfile(): UserProfile {
   try {
-    const raw = localStorage.getItem(PATIENT_PROFILE_KEY);
+    let raw = localStorage.getItem(USER_PROFILE_KEY);
     if (!raw) {
-      const defaultProfile: PatientProfile = {
+      const legacyRaw = localStorage.getItem(OLD_PATIENT_PROFILE_KEY);
+      if (legacyRaw) {
+        try {
+          const legacyParsed = JSON.parse(legacyRaw);
+          const migratedProfile: UserProfile = {
+            name: legacyParsed.name || 'Guilherme',
+            notes: 'Acompanhamento pessoal de humor, sono, hábitos e autorregulação.',
+            notificationsEnabled: !!legacyParsed.notificationsEnabled,
+          };
+          localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(migratedProfile));
+          localStorage.removeItem(OLD_PATIENT_PROFILE_KEY);
+          return migratedProfile;
+        } catch {
+          // fallback
+        }
+      }
+
+      const defaultProfile: UserProfile = {
         name: 'Guilherme',
         notes: 'Acompanhamento pessoal de humor, sono, hábitos e regulação emocional.',
         notificationsEnabled: false,
       };
-      localStorage.setItem(PATIENT_PROFILE_KEY, JSON.stringify(defaultProfile));
+      localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(defaultProfile));
       return defaultProfile;
     }
     return JSON.parse(raw);
   } catch {
     return {
-      name: 'Usuário',
+      name: 'Guilherme',
       notificationsEnabled: false,
     };
   }
 }
 
-export function savePatientProfile(profile: PatientProfile): void {
+export function saveUserProfile(profile: UserProfile): void {
   try {
-    localStorage.setItem(PATIENT_PROFILE_KEY, JSON.stringify(profile));
+    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
   } catch (err) {
     console.error('Error saving profile', err);
   }
 }
 
+// Backwards compatibility functions
+export const loadPatientProfile = loadUserProfile;
+export const savePatientProfile = saveUserProfile;
+
 export function resetAllDataToDemo(): void {
   const seeded = generateInitialSeedEntries();
   localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(seeded));
   localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(INITIAL_MEDICATIONS));
+  localStorage.removeItem(OLD_ENTRIES_STORAGE_KEY);
+  localStorage.removeItem(OLD_MEDICATIONS_STORAGE_KEY);
+  localStorage.removeItem(OLD_PATIENT_PROFILE_KEY);
 }
 
 export function clearAllUserData(): void {
   localStorage.removeItem(ENTRIES_STORAGE_KEY);
+  localStorage.removeItem(OLD_ENTRIES_STORAGE_KEY);
   localStorage.removeItem(MEDICATIONS_STORAGE_KEY);
-  localStorage.removeItem(PATIENT_PROFILE_KEY);
+  localStorage.removeItem(OLD_MEDICATIONS_STORAGE_KEY);
+  localStorage.removeItem(USER_PROFILE_KEY);
+  localStorage.removeItem(OLD_PATIENT_PROFILE_KEY);
 }
 
 export interface BackupPayload {
   version: string;
+  system: string;
   exportedAt: string;
+  totalEntries: number;
+  totalWorkouts: number;
+  profile: UserProfile;
   entries: AfetivoEntry[];
   medications: Medication[];
-  profile?: PatientProfile;
 }
 
 export function exportDataAsJSON(): string {
+  const entries = loadEntries();
+  const medications = loadMedications();
+  const profile = loadUserProfile();
+
+  let totalWorkouts = 0;
+  entries.forEach((e) => {
+    if (e.physicalActivities) totalWorkouts += e.physicalActivities.length;
+  });
+
   const payload: BackupPayload = {
-    version: '1.0',
+    version: '2.0',
+    system: 'Sistema Afetivo - Acompanhamento de Humor, Hábitos & Regulação Emocional',
     exportedAt: new Date().toISOString(),
-    entries: loadEntries(),
-    medications: loadMedications(),
-    profile: loadPatientProfile(),
+    totalEntries: entries.length,
+    totalWorkouts,
+    profile,
+    entries,
+    medications,
   };
   return JSON.stringify(payload, null, 2);
 }
@@ -562,41 +687,70 @@ export function exportDataAsCSV(): string {
     'Horario',
     'Humor_Score',
     'Humor_Rotulo',
-    'Estado_Misto',
+    'Estado_Misto_Agitacao_Desanimo',
     'Horas_Sono',
     'Qualidade_Sono',
-    'Nivel_Energia',
-    'Nivel_Ansiedade',
-    'Nivel_Irritabilidade',
+    'Latencia_Sono_Minutos',
+    'Nivel_Energia_1a5',
+    'Nivel_Ansiedade_0a5',
+    'Nivel_Irritabilidade_0a5',
     'Atividades_Fisicas',
+    'Minutos_Totais_Treino',
     'Emocoes',
-    'Sintomas_Somaticos',
+    'Sintomas_Corpo',
     'Gatilhos',
-    'Impulsos_Registrados',
-    'Protecoes_O_Que_Ajudou',
+    'Impulsos_Monitorados',
+    'Protecoes_Ancoras_O_Que_Ajudou',
+    'Notas_O_Que_Ajudou',
+    'Tags_Personalizadas',
+    'Rotina_Medicacoes_Suplementos',
     'Notas_Diario',
     'Notas_Gratidao',
   ];
 
+  const escapeCsv = (str: string | number | boolean | undefined) => {
+    if (str === undefined || str === null) return '""';
+    const clean = String(str).replace(/"/g, '""');
+    return `"${clean}"`;
+  };
+
   const rows = entries.map((e) => {
     const workoutsStr = (e.physicalActivities || [])
-      .map((w) => `${w.type} (${w.durationMinutes}min, ${w.intensity})`)
-      .join('; ');
-    const impulsesStr = (e.impulsiveBehaviors || [])
-      .map((i) => `${i.type} [Resistido: ${i.resisted}]`)
-      .join('; ');
-    const protectionsStr = [
-      ...(e.protectiveFactors || []),
-      e.whatHelpedNotes ? `Nota: ${e.whatHelpedNotes}` : '',
-    ]
-      .filter(Boolean)
+      .map((w) => `${w.type} (${w.durationMinutes}min, ${w.intensity}${w.postWorkoutFeeling ? `, pós: ${w.postWorkoutFeeling}` : ''})`)
       .join('; ');
 
-    const escapeCsv = (str: string | number | boolean | undefined) => {
-      if (str === undefined || str === null) return '""';
-      const clean = String(str).replace(/"/g, '""');
-      return `"${clean}"`;
-    };
+    const totalMinutes = (e.physicalActivities || []).reduce(
+      (sum, w) => sum + (Number(w.durationMinutes) || 0),
+      0
+    );
+
+    const impulsesStr = (e.impulsiveBehaviors || [])
+      .map((i) => {
+        let resistedLabel = i.resisted;
+        if (i.resisted === 'resisted_fully') resistedLabel = 'Resistiu totalmente' as any;
+        else if (i.resisted === 'delayed') resistedLabel = 'Adiou 15min' as any;
+        else if (i.resisted === 'yielded_partially') resistedLabel = 'Parcialmente contido' as any;
+        else resistedLabel = 'Cedeu' as any;
+        return `${i.type} [${resistedLabel}${i.reflection ? ` - ${i.reflection}` : ''}]`;
+      })
+      .join('; ');
+
+    const protectionsStr = (e.protectiveFactors || []).join('; ');
+
+    const medIntakesStr = (e.medicationIntakes || [])
+      .map((m) => {
+        const statusMap: Record<string, string> = {
+          taken: 'Tomado',
+          skipped: 'Esquecido',
+          delayed: 'Atrasado',
+          extra_dose: 'Dose extra',
+        };
+        const st = statusMap[m.status] || m.status;
+        return `${m.medicationName}: ${st}${m.timeTaken ? ` às ${m.timeTaken}` : ''}`;
+      })
+      .join('; ');
+
+    const tagsStr = (e.customTags || []).join(' ');
 
     return [
       escapeCsv(e.date),
@@ -606,15 +760,20 @@ export function exportDataAsCSV(): string {
       escapeCsv(e.isMixedState ? 'Sim' : 'Nao'),
       escapeCsv(e.sleepHours),
       escapeCsv(e.sleepQuality),
+      escapeCsv(e.sleepLatencyMinutes ?? ''),
       escapeCsv(e.energyLevel),
       escapeCsv(e.anxietyLevel),
       escapeCsv(e.irritabilityLevel),
       escapeCsv(workoutsStr),
+      escapeCsv(totalMinutes),
       escapeCsv(e.emotions?.join(', ')),
       escapeCsv(e.somaticSymptoms?.join(', ')),
       escapeCsv(e.triggers?.join(', ')),
       escapeCsv(impulsesStr),
       escapeCsv(protectionsStr),
+      escapeCsv(e.whatHelpedNotes),
+      escapeCsv(tagsStr),
+      escapeCsv(medIntakesStr),
       escapeCsv(e.journalNotes),
       escapeCsv(e.gratitudeNotes),
     ].join(',');
@@ -631,20 +790,40 @@ export function importDataFromJSON(jsonString: string): {
 } {
   try {
     const data = JSON.parse(jsonString);
-    if (!data || !Array.isArray(data.entries)) {
-      return { success: false, error: 'Arquivo JSON inválido. Estrutura não reconhecida.' };
+    let entriesToSave: AfetivoEntry[] | null = null;
+    let medsToSave: Medication[] | null = null;
+    let profileToSave: UserProfile | null = null;
+
+    if (Array.isArray(data)) {
+      entriesToSave = data;
+    } else if (data && typeof data === 'object') {
+      if (Array.isArray(data.entries)) {
+        entriesToSave = data.entries;
+      }
+      if (Array.isArray(data.medications)) {
+        medsToSave = data.medications;
+      }
+      if (data.profile) {
+        profileToSave = data.profile;
+      }
     }
-    saveEntries(data.entries);
-    if (Array.isArray(data.medications)) {
-      saveMedications(data.medications);
+
+    if (!entriesToSave || !Array.isArray(entriesToSave)) {
+      return { success: false, error: 'Arquivo JSON inválido. Não foram encontrados registros de humor.' };
     }
-    if (data.profile) {
-      savePatientProfile(data.profile);
+
+    saveEntries(entriesToSave);
+    if (medsToSave) {
+      saveMedications(medsToSave);
     }
+    if (profileToSave) {
+      saveUserProfile(profileToSave);
+    }
+
     return {
       success: true,
-      entriesCount: data.entries.length,
-      medsCount: data.medications ? data.medications.length : 0,
+      entriesCount: entriesToSave.length,
+      medsCount: medsToSave ? medsToSave.length : 0,
     };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Falha ao processar arquivo.' };
