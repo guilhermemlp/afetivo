@@ -293,7 +293,7 @@ export function FolderBackupProvider({
     autoEnabled.current = enabled && connected;
     if (enabled && connected) {
       setMessage(
-        'Backup automático ativado. Cada registro será copiado assim que você clicar em Salvar Agora.',
+        'Backup automático ativado. Cada registro será copiado assim que você clicar em Salvar.',
       );
     }
   };

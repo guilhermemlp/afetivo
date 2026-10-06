@@ -40,8 +40,16 @@ export default function App() {
   const confirm = useConfirmation();
   const [storageError, setStorageError] = useState<string | null>(null);
   const persist = (operation: () => void) => {
-    try { operation(); setStorageError(null); return true; }
-    catch { setStorageError('Não foi possível salvar no navegador. Verifique o espaço disponível e as permissões de armazenamento.'); return false; }
+    try {
+      operation();
+      setStorageError(null);
+      return true;
+    } catch {
+      setStorageError(
+        'Não foi possível salvar no navegador. Verifique o espaço disponível e as permissões de armazenamento.',
+      );
+      return false;
+    }
   };
   const [entries, setEntries] = useState<AfetivoEntry[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -67,14 +75,17 @@ export default function App() {
 
   // Handlers
   const handleSaveEntry = async (newEntry: AfetivoEntry) => {
-    const updated = entries.filter(entry => entry.id !== newEntry.id);
+    const updated = entries.filter((entry) => entry.id !== newEntry.id);
     updated.push(newEntry);
-    updated.sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
+    updated.sort(
+      (a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time),
+    );
 
-    if (!persist(() => saveEntries(updated))) throw new Error('Não foi possível salvar no navegador. Verifique o espaço disponível e as permissões de armazenamento.');
+    if (!persist(() => saveEntries(updated)))
+      throw new Error(
+        'Não foi possível salvar no navegador. Verifique o espaço disponível e as permissões de armazenamento.',
+      );
     setEntries(updated);
-    setIsLoggerOpen(false);
-    setEditingEntry(null);
     return true;
   };
 
@@ -92,7 +103,11 @@ export default function App() {
   };
 
   const handleResetToDemo = async () => {
-    if (await confirm('Deseja redefinir os dados para o conjunto demonstrativo de 14 dias?')) {
+    if (
+      await confirm(
+        'Deseja redefinir os dados para o conjunto demonstrativo de 14 dias?',
+      )
+    ) {
       if (!persist(resetAllDataToDemo)) return;
       setEntries(loadEntries());
       setMedications(loadMedications());
@@ -100,7 +115,11 @@ export default function App() {
   };
 
   const handleClearAll = async () => {
-    if (await confirm('Deseja apagar todos os registros e iniciar seu diário do zero?')) {
+    if (
+      await confirm(
+        'Deseja apagar todos os registros e iniciar seu diário do zero?',
+      )
+    ) {
       if (!persist(clearAllUserData)) return;
       setEntries([]);
       setMedications([]);
@@ -108,12 +127,20 @@ export default function App() {
     }
   };
 
-  const realEntries = entries.filter(e => !e.isDemo);
-  const totalDays = new Set(realEntries.map(e => e.date)).size;
+  const realEntries = entries.filter((e) => !e.isDemo);
+  const totalDays = new Set(realEntries.map((e) => e.date)).size;
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans antialiased">
-      {entries.some(e => e.isDemo) && <p role="status" className="bg-amber-50 text-amber-900 px-4 py-3 text-sm">Demonstração: os exemplos são fictícios e ficam fora das análises e dos relatórios pessoais.</p>}
+      {entries.some((e) => e.isDemo) && (
+        <p
+          role="status"
+          className="bg-amber-50 text-amber-900 px-4 py-3 text-sm"
+        >
+          Demonstração: os exemplos são fictícios e ficam fora das análises e
+          dos relatórios pessoais.
+        </p>
+      )}
       {/* Top Bar */}
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
@@ -255,7 +282,14 @@ export default function App() {
         </div>
       </header>
 
-      {storageError && <p role="alert" className="mx-auto w-full max-w-6xl px-6 py-3 text-sm text-rose-700">{storageError}</p>}
+      {storageError && (
+        <p
+          role="alert"
+          className="mx-auto w-full max-w-6xl px-6 py-3 text-sm text-rose-700"
+        >
+          {storageError}
+        </p>
+      )}
 
       {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-6">
@@ -268,7 +302,9 @@ export default function App() {
                 <div className="flex items-center gap-2 text-xs text-stone-500">
                   <span>Monitoramento Pessoal</span>
                   <span aria-hidden="true">·</span>
-                  <span>{realEntries.length} registros em {totalDays} dias</span>
+                  <span>
+                    {realEntries.length} registros em {totalDays} dias
+                  </span>
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 mt-0.5">
                   Painel de Humor, Emoções & Hábitos
@@ -321,7 +357,8 @@ export default function App() {
                     Analisar Padrões de Humor & Sono
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Consulte os contextos relatados, as respostas disponíveis e os detalhes que você escolheu guardar.
+                    Consulte os contextos relatados, as respostas disponíveis e
+                    os detalhes que você escolheu guardar.
                   </p>
                 </div>
                 <button
@@ -344,7 +381,8 @@ export default function App() {
                     Resumo dos Seus Registros
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Guarde um resumo de humor, ativação, sono e contexto, com os limites das respostas disponíveis.
+                    Guarde um resumo de humor, ativação, sono e contexto, com os
+                    limites das respostas disponíveis.
                   </p>
                 </div>
                 <button
@@ -367,7 +405,8 @@ export default function App() {
                     Como Analisar Suas Emoções
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Veja como registrar emoções e contexto, pular detalhes e retomar quando quiser.
+                    Veja como registrar emoções e contexto, pular detalhes e
+                    retomar quando quiser.
                   </p>
                 </div>
                 <button

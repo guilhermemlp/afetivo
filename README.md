@@ -48,21 +48,21 @@ O sistema foi construído para:
 
 ## Principais recursos
 
-| Área | Recursos |
-| --- | --- |
-| Registro | Humor, ativação, data, horário e tipo de registro |
-| Contexto | Emoções, situações relatadas e notas livres |
-| Bem-estar | Sono, energia física, ansiedade e irritabilidade |
-| Impulsos | Ocorrência, intensidade, desfecho e estratégia escolhida |
-| Atividade | Tipo, duração e intensidade de atividade física |
-| Apoios | Apoio percebido, avaliação subjetiva e próximo passo |
-| Rotina | Cadastro de medicamentos, suplementos ou outros itens de rotina |
-| Histórico | Busca, filtros, edição e exclusão com confirmação interna |
-| Visualização | Gráfico por período e escalas antigas preservadas separadamente |
-| Análise | Cobertura dos registros, contextos frequentes e apoios avaliados |
-| Relatório | Texto local por período, cópia, download e impressão/PDF |
-| Portabilidade | Exportação JSON completa e CSV para planilhas |
-| Backup | Cópias versionadas em pasta sincronizada pelo Google Drive |
+| Área          | Recursos                                                         |
+| ------------- | ---------------------------------------------------------------- |
+| Registro      | Humor, ativação, data, horário e tipo de registro                |
+| Contexto      | Emoções, situações relatadas e notas livres                      |
+| Bem-estar     | Sono, energia física, ansiedade e irritabilidade                 |
+| Impulsos      | Ocorrência, intensidade, desfecho e estratégia escolhida         |
+| Atividade     | Tipo, duração e intensidade de atividade física                  |
+| Apoios        | Apoio percebido, avaliação subjetiva e próximo passo             |
+| Rotina        | Cadastro de medicamentos, suplementos ou outros itens de rotina  |
+| Histórico     | Busca, filtros, edição e exclusão com confirmação interna        |
+| Visualização  | Gráfico por período e escalas antigas preservadas separadamente  |
+| Análise       | Cobertura dos registros, contextos frequentes e apoios avaliados |
+| Relatório     | Texto local por período, cópia, download e impressão/PDF         |
+| Portabilidade | Exportação JSON completa e CSV para planilhas                    |
+| Backup        | Cópias versionadas em pasta sincronizada pelo Google Drive       |
 
 Os dados demonstrativos são identificados como fictícios e ficam fora das
 análises e dos relatórios pessoais.
@@ -172,16 +172,16 @@ pasta `dist`.
 
 ### Scripts disponíveis
 
-| Comando | Finalidade |
-| --- | --- |
-| `npm run dev` | Inicia o servidor de desenvolvimento |
-| `npm run build` | Gera o site estático em `dist/` |
-| `npm start` | Abre o build em modo preview |
-| `npm run preview` | Alias direto do preview do Vite |
-| `npm run lint` | Executa a verificação do TypeScript sem gerar arquivos |
-| `npm test` | Executa testes de serviços, armazenamento, relatórios e backup |
-| `npm run test:browser` | Executa os fluxos de navegador com Playwright |
-| `npm run clean` | Remove a pasta `dist/` |
+| Comando                | Finalidade                                                     |
+| ---------------------- | -------------------------------------------------------------- |
+| `npm run dev`          | Inicia o servidor de desenvolvimento                           |
+| `npm run build`        | Gera o site estático em `dist/`                                |
+| `npm start`            | Abre o build em modo preview                                   |
+| `npm run preview`      | Alias direto do preview do Vite                                |
+| `npm run lint`         | Executa a verificação do TypeScript sem gerar arquivos         |
+| `npm test`             | Executa testes de serviços, armazenamento, relatórios e backup |
+| `npm run test:browser` | Executa os fluxos de navegador com Playwright                  |
+| `npm run clean`        | Remove a pasta `dist/`                                         |
 
 ## Testes
 
@@ -259,7 +259,7 @@ navegador é obrigatório por segurança.
 ### Funcionamento automático
 
 Ao conectar a pasta, a opção **Criar backup ao salvar registros** é ativada.
-Depois disso, cada clique em **Salvar Agora** cria imediatamente um novo arquivo
+Depois disso, cada clique em **Salvar** cria imediatamente um novo arquivo
 JSON completo. O painel de backup pode estar fechado.
 
 Cada arquivo possui nome único e as versões anteriores são preservadas. O
@@ -387,21 +387,21 @@ O projeto deve ser publicado como site estático.
 
 No painel do Render, crie um **Static Site** e use:
 
-| Campo | Valor |
-| --- | --- |
-| Repositório | `guilhermemlp/afetivo` |
-| Branch | `main` |
-| Root Directory | vazio |
-| Build Command | `npm ci && npm run build` |
-| Publish Directory | `dist` |
-| Auto-Deploy | habilitado |
-| `NODE_VERSION` | `24.19.0` |
+| Campo             | Valor                     |
+| ----------------- | ------------------------- |
+| Repositório       | `guilhermemlp/afetivo`    |
+| Branch            | `main`                    |
+| Root Directory    | vazio                     |
+| Build Command     | `npm ci && npm run build` |
+| Publish Directory | `dist`                    |
+| Auto-Deploy       | habilitado                |
+| `NODE_VERSION`    | `24.19.0`                 |
 
 Como rewrite para SPA, pode ser configurado:
 
-| Source | Destination | Action |
-| --- | --- | --- |
-| `/*` | `/index.html` | Rewrite |
+| Source | Destination   | Action  |
+| ------ | ------------- | ------- |
+| `/*`   | `/index.html` | Rewrite |
 
 Não configure Gemini, banco de dados, Google Cloud ou o caminho da pasta do
 Drive no Render.
@@ -411,20 +411,20 @@ Drive no Render.
 A Vercel normalmente reconhece o Vite automaticamente. Se for necessário
 preencher manualmente:
 
-| Campo | Valor |
-| --- | --- |
-| Framework | Vite |
-| Build Command | `npm run build` |
-| Output Directory | `dist` |
-| Install Command | `npm ci` |
+| Campo            | Valor           |
+| ---------------- | --------------- |
+| Framework        | Vite            |
+| Build Command    | `npm run build` |
+| Output Directory | `dist`          |
+| Install Command  | `npm ci`        |
 
 ### Cloudflare Pages
 
-| Campo | Valor |
-| --- | --- |
-| Production branch | `main` |
-| Build Command | `npm run build` |
-| Build output directory | `dist` |
+| Campo                  | Valor           |
+| ---------------------- | --------------- |
+| Production branch      | `main`          |
+| Build Command          | `npm run build` |
+| Build output directory | `dist`          |
 
 ### Depois de publicar
 
@@ -440,14 +440,14 @@ se necessário, restauração de um backup JSON.
 
 ## Compatibilidade
 
-| Ambiente | Situação |
-| --- | --- |
-| Chrome/Edge desktop em HTTPS | Fluxo completo, incluindo pasta sincronizada |
-| Chrome/Edge em `localhost` | Fluxo completo para desenvolvimento |
-| Firefox/Safari | Diário e downloads; seleção persistente de pasta pode não funcionar |
-| Navegadores móveis | Diário e importação/download; seleção de pasta é limitada |
-| Página HTTP pública | Seleção de pasta pode ser bloqueada; use HTTPS |
-| Iframe com sandbox | Confirmações internas funcionam sem `allow-modals` |
+| Ambiente                     | Situação                                                            |
+| ---------------------------- | ------------------------------------------------------------------- |
+| Chrome/Edge desktop em HTTPS | Fluxo completo, incluindo pasta sincronizada                        |
+| Chrome/Edge em `localhost`   | Fluxo completo para desenvolvimento                                 |
+| Firefox/Safari               | Diário e downloads; seleção persistente de pasta pode não funcionar |
+| Navegadores móveis           | Diário e importação/download; seleção de pasta é limitada           |
+| Página HTTP pública          | Seleção de pasta pode ser bloqueada; use HTTPS                      |
+| Iframe com sandbox           | Confirmações internas funcionam sem `allow-modals`                  |
 
 Todas as plataformas recomendadas de deploy fornecem HTTPS no subdomínio
 padrão.

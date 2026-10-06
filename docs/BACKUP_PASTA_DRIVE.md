@@ -23,7 +23,7 @@ O aplicativo exibe até as dez cópias mais recentes da pasta. As demais continu
 
 ## Backup ao salvar o registro
 
-Depois que a pasta é conectada, clicar em **Salvar Agora** cria imediatamente um novo arquivo JSON com o backup completo, já incluindo o registro recém-salvo. Não existe espera de 15 segundos. A gravação é feita na pasta do computador; o aplicativo Google Drive para computador decide quando esse arquivo chega à nuvem.
+Depois que a pasta é conectada, clicar em **Salvar** cria imediatamente um novo arquivo JSON com o backup completo, já incluindo o registro recém-salvo. Não existe espera de 15 segundos. A gravação é feita na pasta do computador; o aplicativo Google Drive para computador decide quando esse arquivo chega à nuvem.
 
 Funciona enquanto o Afetivo está aberto e tem autorização para acessar a pasta, mesmo com o painel de backup fechado. Se o navegador conservar a autorização ao voltar ou recarregar a página, a cópia automática é reativada. Caso o navegador peça autorização novamente, use **Autorizar pasta salva**. Se a autorização for retirada, a cópia automática é pausada e o diário local permanece intacto.
 

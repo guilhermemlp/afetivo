@@ -163,7 +163,7 @@ test('medication add, edit, pause and new-entry intake selection work', async ()
   await page
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -199,6 +199,19 @@ test('new records are blank and opening optional sections does not create answer
   await page
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
+  const logger = page.getByRole('dialog', { name: 'Como está este momento?' });
+  await logger.waitFor();
+  assert.notEqual(await page.getByLabel('Data').inputValue(), '');
+  assert.notEqual(await page.getByLabel('Horário').inputValue(), '');
+  assert.equal(
+    await page.getByRole('combobox', { name: 'Tipo de registro' }).count(),
+    0,
+  );
+  assert.equal(await page.locator('details').count(), 0);
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .click();
+  assert.equal(await page.locator('details').count(), 7);
   await page.getByText('Sono e disposição', { exact: true }).click();
   assert.equal(
     await page
@@ -207,7 +220,11 @@ test('new records are blank and opening optional sections does not create answer
     '',
   );
   await page.getByText('Medicações e rotina', { exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await page
+    .getByRole('status')
+    .filter({ hasText: 'Salvo neste dispositivo.' })
+    .waitFor();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -236,25 +253,21 @@ test('backups download, reject invalid imports and restore valid data', async ()
   const { readFile } = require('node:fs/promises');
   const backup = JSON.parse(await readFile(await file.path(), 'utf8'));
   assert.equal(backup.entries.length, 14);
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: 'invalid.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from('{"entries":[null]}'),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'invalid.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"entries":[null]}'),
+  });
   await approve();
   await page.getByText('Item de backup inválido.', { exact: true }).waitFor();
   assert.equal((await data('afetivo_entries_v2')).length, 14);
   backup.entries = [];
   backup.medications = [];
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: 'valid.json',
-      mimeType: 'application/json',
-      buffer: Buffer.from(JSON.stringify(backup)),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'valid.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(backup)),
+  });
   await approve();
   await page.getByText(/Backup restaurado com sucesso!/).waitFor();
   assert.deepEqual(await data('afetivo_entries_v2'), []);
@@ -313,9 +326,7 @@ test('multiple moments in one day preserve both mood and activation separately',
       .click();
     await page.getByRole('button', { name: mood, exact: true }).click();
     await page.getByRole('button', { name: activation, exact: true }).click();
-    await page
-      .getByRole('button', { name: 'Salvar Agora', exact: true })
-      .click();
+    await page.getByRole('button', { name: 'Salvar', exact: true }).click();
     await page
       .getByRole('button', { name: 'Fechar registro' })
       .waitFor({ state: 'hidden' });
@@ -350,7 +361,7 @@ test('failed writes keep the registration form and existing data intact', async 
   await page
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('alert')
     .filter({ hasText: 'Não foi possível salvar no navegador.' })
@@ -368,6 +379,9 @@ test('removing the last impulse does not recreate it when saving', async () => {
   await page
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .click();
   await page.getByText('Impulsos — sem julgamento', { exact: true }).click();
   await page
     .getByRole('button', { name: 'Adicionar impulso', exact: true })
@@ -375,7 +389,7 @@ test('removing the last impulse does not recreate it when saving', async () => {
   await page
     .getByRole('button', { name: 'Remover impulso', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -401,7 +415,7 @@ test('editing a historical record preserves optional fields and deleted medicati
     .getByText(/histórico \/ pausado/)
     .first()
     .waitFor();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -420,11 +434,14 @@ test('reports stay local and explicit absent impulses differ from skipped questi
   await page
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .click();
   await page.getByText('Impulsos — sem julgamento', { exact: true }).click();
   await page
     .getByRole('button', { name: 'Não percebi impulsos', exact: true })
     .click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -459,7 +476,7 @@ test('first visit has no fictitious entries and keyboard focus returns after Esc
   await page.keyboard.press('Shift+Tab');
   assert.equal(
     await page
-      .getByRole('button', { name: 'Salvar Agora', exact: true })
+      .getByRole('button', { name: 'Salvar', exact: true })
       .evaluate((element) => element === document.activeElement),
     true,
   );
@@ -483,6 +500,9 @@ test('mobile records support context, multiple emotions, optional help and daily
   await page.setViewportSize({ width: 390, height: 844 });
   await page
     .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
     .click();
   await page
     .getByRole('combobox', { name: 'Tipo de registro', exact: true })
@@ -527,7 +547,7 @@ test('mobile records support context, multiple emotions, optional help and daily
       .evaluate((element) => element.scrollWidth <= element.clientWidth),
     true,
   );
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -543,7 +563,7 @@ test('mobile records support context, multiple emotions, optional help and daily
   await page.getByRole('button', { name: 'Diário', exact: true }).click();
   await page.getByText('Resumo do dia', { exact: true }).waitFor();
   await page.locator('button[title="Editar registro"]').first().click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -680,7 +700,7 @@ test('automatic folder backup keeps working when the backup panel is closed and 
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
   await page.getByRole('button', { name: 'Agradável', exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });
@@ -697,7 +717,7 @@ test('automatic folder backup keeps working when the backup panel is closed and 
     .getByRole('button', { name: 'Novo Registro', exact: true })
     .click();
   await page.getByRole('button', { name: 'Desagradável', exact: true }).click();
-  await page.getByRole('button', { name: 'Salvar Agora', exact: true }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await page
     .getByRole('button', { name: 'Fechar registro' })
     .waitFor({ state: 'hidden' });

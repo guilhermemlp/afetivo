@@ -97,7 +97,7 @@ export function FolderBackupPanel({
               Criar backup ao salvar registros
               <span className="block text-xs text-stone-500">
                 Ativado automaticamente ao conectar a pasta. Cada clique em
-                “Salvar Agora” cria imediatamente um novo arquivo com o backup
+                “Salvar” cria imediatamente um novo arquivo com o backup
                 completo. Os arquivos anteriores são preservados.
               </span>
             </span>
