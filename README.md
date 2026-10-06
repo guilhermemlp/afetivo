@@ -84,6 +84,47 @@ registros existentes não usam nem substituem esse rascunho.
 O rascunho não é enviado para serviços externos nem incluído nos backups antes
 de virar um registro salvo.
 
+### Instalação como aplicativo (PWA)
+
+O Afetivo pode ser instalado na tela inicial sem loja de aplicativos. A PWA usa
+um manifesto próprio e um service worker que guarda somente a interface e os
+assets estáticos da mesma origem. Registros, rascunhos e preferências continuam
+no armazenamento local do navegador e não são enviados pelo service worker.
+
+Para testar localmente em modo de produção:
+
+```bash
+npm run build
+npm start
+```
+
+Abra `http://localhost:4173`, aguarde o primeiro carregamento e verifique:
+
+1. Chrome ou Edge: use o ícone de instalação na barra de endereço ou
+   **Menu → Instalar Afetivo**.
+2. Android: use **Adicionar à tela inicial** no menu do navegador.
+3. iPhone/iPad: no Safari, use **Compartilhar → Adicionar à Tela de Início**.
+4. No DevTools, abra **Application → Manifest** para conferir nome, cores e
+   ícones, e **Application → Service Workers** para conferir o worker ativo.
+5. Após uma visita online, marque **Offline** no DevTools e recarregue. A
+   interface deve abrir; os dados locais permanecem disponíveis.
+
+A instalação exige HTTPS no endereço publicado. `localhost` é aceito pelos
+navegadores durante o desenvolvimento.
+
+### Preferência de lembretes
+
+O perfil local possui uma preferência opcional com a seguinte linguagem:
+
+> Quero usar lembretes leves quando estiverem disponíveis.
+
+> Por enquanto, isso apenas guarda sua preferência neste dispositivo. O
+> Afetivo ainda não solicita permissão nem envia notificações.
+
+Essa opção não chama a Notification API. O ponto futuro de integração está
+comentado no componente de preferências e no service worker, incluindo a regra
+de solicitar permissão somente após uma ação explícita.
+
 ## Adaptação para TDAH
 
 A adaptação se concentra na experiência de registro, não no tratamento do TDAH.

@@ -13,6 +13,7 @@ import {
   resetAllDataToDemo,
   clearAllUserData,
   loadUserProfile,
+  saveUserProfile,
 } from './services/storage';
 import { AfetivogramaChart } from './components/AfetivogramaChart';
 import { QuickMoodLogger } from './components/QuickMoodLogger';
@@ -22,6 +23,7 @@ import { JournalFeed } from './components/JournalFeed';
 import { ClinicalReportModal } from './components/ClinicalReportModal';
 import { PlanningGuideModal } from './components/PlanningGuideModal';
 import { DataBackupModal } from './components/DataBackupModal';
+import { ReminderPreferences } from './components/ReminderPreferences';
 import { useConfirmation } from './components/ConfirmationProvider';
 import {
   BookOpen,
@@ -54,6 +56,7 @@ export default function App() {
   const [entries, setEntries] = useState<AfetivoEntry[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
   const [userName, setUserName] = useState('Guilherme');
+  const [remindersEnabled, setRemindersEnabled] = useState(false);
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [timeFrameDays, setTimeFrameDays] = useState<number>(14);
 
@@ -70,7 +73,9 @@ export default function App() {
     const loadedMeds = loadMedications();
     setEntries(loadedEntries);
     setMedications(loadedMeds);
-    setUserName(loadUserProfile().name);
+    const profile = loadUserProfile();
+    setUserName(profile.name);
+    setRemindersEnabled(profile.notificationsEnabled);
   }, []);
 
   // Handlers
@@ -124,7 +129,23 @@ export default function App() {
       setEntries([]);
       setMedications([]);
       setUserName('Guilherme');
+      setRemindersEnabled(false);
     }
+  };
+
+  const handleReminderPreference = (enabled: boolean) => {
+    const currentProfile = loadUserProfile();
+    if (
+      !persist(() =>
+        saveUserProfile({
+          ...currentProfile,
+          notificationsEnabled: enabled,
+        }),
+      )
+    )
+      return false;
+    setRemindersEnabled(enabled);
+    return true;
   };
 
   const openNewEntry = () => {
@@ -438,6 +459,11 @@ export default function App() {
                 </button>
               </div>
             </div>
+
+            <ReminderPreferences
+              enabled={remindersEnabled}
+              onChange={handleReminderPreference}
+            />
           </div>
         )}
 
@@ -513,7 +539,9 @@ export default function App() {
           onDataRestored={() => {
             setEntries(loadEntries());
             setMedications(loadMedications());
-            setUserName(loadUserProfile().name);
+            const profile = loadUserProfile();
+            setUserName(profile.name);
+            setRemindersEnabled(profile.notificationsEnabled);
           }}
         />
       )}

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { beforeEach, test } from 'node:test';
 import {
   clearAllUserData, exportDataAsJSON, exportDataAsCSV, generateInitialSeedEntries,
-  importDataFromJSON, loadEntries, loadMedications, resetAllDataToDemo, saveEntries, saveMedications,
+  importDataFromJSON, loadEntries, loadMedications, loadUserProfile, resetAllDataToDemo, saveEntries, saveMedications, saveUserProfile,
 } from '../src/services/storage';
 import { ENTRY_DRAFT_STORAGE_KEY } from '../src/services/entryDraft';
 
@@ -35,6 +35,13 @@ test('clearing a diary stays empty after loading and exporting', () => {
 test('deleting all medications does not restore the demonstration list', () => {
   saveMedications([]);
   assert.deepEqual(loadMedications(), []);
+});
+
+test('reminder preference stays in the local user profile and backup', () => {
+  const profile = loadUserProfile();
+  saveUserProfile({ ...profile, notificationsEnabled: true });
+  assert.equal(loadUserProfile().notificationsEnabled, true);
+  assert.equal(JSON.parse(exportDataAsJSON()).profile.notificationsEnabled, true);
 });
 
 test('user-written medication names and notes survive a save/load/backup round trip', () => {

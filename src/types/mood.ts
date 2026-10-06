@@ -34,6 +34,7 @@ export type MedicationCategory =
 export interface UserProfile {
   name: string;
   notes?: string;
+  // Preferência local para a futura Notification API; não concede permissão.
   notificationsEnabled: boolean;
 }
 

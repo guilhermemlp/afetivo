@@ -23,5 +23,15 @@ export default defineConfig(() => {
       host: '0.0.0.0',
       port: Number.isFinite(configuredPort) ? configuredPort : 4173,
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Nomes estáveis permitem que o service worker forme o app shell.
+          // Outros chunks continuam sendo armazenados em tempo de execução.
+          entryFileNames: 'assets/afetivo.js',
+          assetFileNames: 'assets/[name][extname]',
+        },
+      },
+    },
   };
 });

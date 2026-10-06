@@ -349,6 +349,43 @@ test('dashboard and journal empty states offer a low-friction check-in', async (
     .waitFor();
 });
 
+test('reminder preference is local and does not request notification permission', async () => {
+  await page.addInitScript(() => {
+    window.__notificationPermissionRequests = 0;
+    Object.defineProperty(window, 'Notification', {
+      configurable: true,
+      value: {
+        permission: 'default',
+        requestPermission: async () => {
+          window.__notificationPermissionRequests++;
+          return 'default';
+        },
+      },
+    });
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await seed('clear');
+  const preference = page.getByRole('checkbox', {
+    name: 'Quero usar lembretes leves quando estiverem disponíveis.',
+    exact: true,
+  });
+  await preference.check();
+  await page
+    .getByRole('status')
+    .filter({ hasText: 'Nenhuma notificação será enviada por enquanto.' })
+    .waitFor();
+  assert.equal(
+    (await data('afetivo_user_profile_v2')).notificationsEnabled,
+    true,
+  );
+  assert.equal(
+    await page.evaluate(() => window.__notificationPermissionRequests),
+    0,
+  );
+  await page.reload({ waitUntil: 'networkidle' });
+  assert.equal(await preference.isChecked(), true);
+});
+
 test('backups download, reject invalid imports and restore valid data', async () => {
   await page
     .getByRole('button', { name: 'Backup & Exportar', exact: true })
