@@ -1,13 +1,40 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, Upload, FileSpreadsheet, Shield, AlertCircle, CheckCircle2, X, RefreshCw, Dumbbell, Calendar, Heart } from 'lucide-react';
-import { exportDataAsJSON, exportDataAsCSV, importDataFromJSON, loadEntries, loadMedications, resetAllDataToDemo } from '../services/storage';
+import {
+  Download,
+  Upload,
+  FileSpreadsheet,
+  Shield,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  RefreshCw,
+  Dumbbell,
+  Calendar,
+  Heart,
+} from 'lucide-react';
+import {
+  exportDataAsJSON,
+  exportDataAsCSV,
+  importDataFromJSON,
+  loadEntries,
+  loadMedications,
+  resetAllDataToDemo,
+} from '../services/storage';
+import { localDate } from '../services/dates';
+
+import { FolderBackupPanel } from './FolderBackupPanel';
+import { useConfirmation } from './ConfirmationProvider';
 
 interface Props {
   onClose: () => void;
   onDataRestored: () => void;
 }
 
-export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) => {
+export const DataBackupModal: React.FC<Props> = ({
+  onClose,
+  onDataRestored,
+}) => {
+  const confirm = useConfirmation();
   const [importStatus, setImportStatus] = useState<{
     success?: boolean;
     message?: string;
@@ -49,7 +76,7 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `afetivo_backup_v2_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `afetivo_backup_v3_${localDate()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -60,7 +87,7 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `afetivo_dados_completos_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `afetivo_dados_completos_${localDate()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -70,8 +97,14 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const content = event.target?.result as string;
+      if (
+        !(await confirm(
+          'Restaurar este backup substituirá os registros atuais. Deseja continuar?',
+        ))
+      )
+        return;
       const result = importDataFromJSON(content);
       if (result.success) {
         setImportStatus({
@@ -87,17 +120,36 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
         });
       }
     };
+    reader.onerror = () =>
+      setImportStatus({
+        success: false,
+        message: 'Não foi possível ler o arquivo.',
+      });
     reader.readAsText(file);
+    e.target.value = '';
   };
 
-  const handleResetToCurrentDataset = () => {
-    if (window.confirm('Deseja limpar registros antigos e carregar a base de demonstração atualizada (com treinos, tags livres e âncoras protetivas)?')) {
-      resetAllDataToDemo();
+  const handleResetToCurrentDataset = async () => {
+    if (
+      await confirm(
+        'Deseja limpar registros antigos e carregar a base de demonstração atualizada (com treinos, tags livres e âncoras protetivas)?',
+      )
+    ) {
+      try {
+        resetAllDataToDemo();
+      } catch {
+        setImportStatus({
+          success: false,
+          message: 'Não foi possível salvar a demonstração no navegador.',
+        });
+        return;
+      }
       refreshStats();
       onDataRestored();
       setImportStatus({
         success: true,
-        message: 'Base atualizada com sucesso! Todos os dados antigos foram substituídos pelo formato mais recente.',
+        message:
+          'Demonstração restaurada. Os exemplos fictícios substituíram os dados locais.',
       });
     }
   };
@@ -116,12 +168,14 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
                 Backup, Exportação & Privacidade
               </h3>
               <p className="text-xs text-stone-500">
-                Dados 100% locais no seu navegador. Exporte ou restaure a qualquer momento.
+                Dados e análises permanecem neste navegador. Backups só vão
+                para os destinos escolhidos por você.
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Fechar backup"
             className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -133,30 +187,43 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
           <div className="flex items-center justify-between font-semibold text-teal-900 dark:text-teal-200 mb-2">
             <span>Visão dos Seus Dados Atuais</span>
             <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-300">
-              Versão 2.0
+              Versão 3.0
             </span>
           </div>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="p-2 rounded-xl bg-white/80 dark:bg-stone-800/80 border border-teal-100 dark:border-teal-900/40">
-              <span className="text-[10px] text-stone-500 block">Dias Mapeados</span>
+              <span className="text-[10px] text-stone-500 block">
+                Registros no Backup
+              </span>
               <span className="text-sm font-bold font-mono text-teal-800 dark:text-teal-300">
                 {stats.entriesCount}
               </span>
             </div>
             <div className="p-2 rounded-xl bg-white/80 dark:bg-stone-800/80 border border-teal-100 dark:border-teal-900/40">
-              <span className="text-[10px] text-stone-500 block">Treinos Físicos</span>
+              <span className="text-[10px] text-stone-500 block">
+                Treinos Físicos
+              </span>
               <span className="text-sm font-bold font-mono text-teal-800 dark:text-teal-300">
                 {stats.workoutCount}
               </span>
             </div>
             <div className="p-2 rounded-xl bg-white/80 dark:bg-stone-800/80 border border-teal-100 dark:border-teal-900/40">
-              <span className="text-[10px] text-stone-500 block">Âncoras de Apoio</span>
+              <span className="text-[10px] text-stone-500 block">
+                Âncoras de Apoio
+              </span>
               <span className="text-sm font-bold font-mono text-teal-800 dark:text-teal-300">
                 {stats.protectionsCount}
               </span>
             </div>
           </div>
         </div>
+
+        <FolderBackupPanel
+          onDataRestored={() => {
+            refreshStats();
+            onDataRestored();
+          }}
+        />
 
         {/* Export Options */}
         <div className="space-y-3">
@@ -172,10 +239,11 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
                 <Download className="w-4 h-4" />
               </div>
               <span className="text-xs font-bold text-stone-900 dark:text-stone-100 group-hover:text-teal-700 dark:group-hover:text-teal-300">
-                Backup JSON Completo (v2.0)
+                Backup JSON Completo (v3.0)
               </span>
               <span className="text-[11px] text-stone-500 mt-0.5">
-                Salva todos os registros, treinos, tags e âncoras para restauração.
+                Salva todos os registros, treinos, tags e âncoras para
+                restauração.
               </span>
             </button>
 
@@ -190,7 +258,7 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
                 Planilha CSV Detalhada
               </span>
               <span className="text-[11px] text-stone-500 mt-0.5">
-                23 colunas completas: sono, humor, treinos, DBT, tags e rotina.
+                31 colunas completas: humor, ativação, contexto, sono e rotina.
               </span>
             </button>
           </div>
@@ -241,7 +309,7 @@ export const DataBackupModal: React.FC<Props> = ({ onClose, onDataRestored }) =>
             className="text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 flex items-center gap-1.5 cursor-pointer text-[11px]"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Atualizar para Base de Dados Atual</span>
+            <span>Restaurar Demonstração</span>
           </button>
 
           <button

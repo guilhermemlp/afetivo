@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Medication, MedicationCategory, AfetivoEntry } from '../types/mood';
+import { useConfirmation } from './ConfirmationProvider';
 import { Pill, Plus, Trash2, Edit2 } from 'lucide-react';
 
 interface Props {
   medications: Medication[];
   entries: AfetivoEntry[];
-  onUpdateMedications: (meds: Medication[]) => void;
+  onUpdateMedications: (meds: Medication[]) => boolean;
 }
 
 const CATEGORY_LABELS: Record<MedicationCategory, string> = {
@@ -23,6 +24,7 @@ export const MedicationManager: React.FC<Props> = ({
   entries,
   onUpdateMedications,
 }) => {
+  const confirm = useConfirmation();
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -37,15 +39,13 @@ export const MedicationManager: React.FC<Props> = ({
   let totalDosesTaken = 0;
   let totalDosesSkipped = 0;
 
-  entries.forEach((e) => {
+  entries.filter(e => !e.isDemo).forEach((e) => {
     e.medicationIntakes?.forEach((m) => {
       totalDosesPrescribed++;
-      if (m.status === 'taken' || m.status === 'delayed') totalDosesTaken++;
+      if (m.status === 'taken' || m.status === 'delayed' || m.status === 'extra_dose') totalDosesTaken++;
       if (m.status === 'skipped') totalDosesSkipped++;
     });
   });
-
-  const consistencyRate = totalDosesPrescribed > 0 ? Math.round((totalDosesTaken / totalDosesPrescribed) * 100) : 100;
 
   const handleSaveMed = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,19 +64,19 @@ export const MedicationManager: React.FC<Props> = ({
             }
           : m
       );
-      onUpdateMedications(updated);
+      if (!onUpdateMedications(updated)) return;
       setEditingId(null);
     } else {
       const newMed: Medication = {
-        id: `med-${Date.now()}`,
+        id: `med-${crypto.randomUUID()}`,
         name: name.trim(),
         category,
-        dosage: dosage.trim() || 'Dose padrão',
+        dosage: dosage.trim(),
         frequency,
         notes: notes.trim() || undefined,
         active: true,
       };
-      onUpdateMedications([...medications, newMed]);
+      if (!onUpdateMedications([...medications, newMed])) return;
     }
 
     setName('');
@@ -95,9 +95,10 @@ export const MedicationManager: React.FC<Props> = ({
     setIsAdding(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Deseja remover este item da lista?')) {
-      onUpdateMedications(medications.filter((m) => m.id !== id));
+  const handleDelete = async (id: string) => {
+    if (await confirm('Deseja remover este item da lista?')) {
+      if (!onUpdateMedications(medications.filter((m) => m.id !== id))) return;
+      if (editingId === id) { setEditingId(null); setIsAdding(false); }
     }
   };
 
@@ -122,24 +123,26 @@ export const MedicationManager: React.FC<Props> = ({
             Registro de Medicações & Hábitos
           </h2>
           <p className="text-xs text-stone-500 max-w-xl mt-1">
-            Cadastre os medicamentos ou suplementos que fazem parte da sua rotina. O sistema ajuda a observar se dias com horários alterados ou esquecimentos coincidiram com oscilações no sono ou impulsos.
+            Cadastre itens da sua rotina e registre o uso que você conhece. Ausência de registro não significa esquecimento; este resumo não mede adesão à prescrição.
           </p>
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
           <div className="text-right">
-            <div className="text-xs text-stone-400">Regularidade de Tomada</div>
+            <div className="text-xs text-stone-400">Uso informado nos registros</div>
             <div className="text-2xl font-bold font-mono text-emerald-700 dark:text-emerald-400">
-              {consistencyRate}%
+              {totalDosesTaken} / {totalDosesPrescribed}
             </div>
             <div className="text-[11px] text-stone-400">
-              {totalDosesSkipped} dias não tomados no histórico
+              {totalDosesSkipped} respostas explícitas de uso não realizado
             </div>
           </div>
 
           <button
             onClick={() => {
               setEditingId(null);
+              setCategory('mood_stabilizer');
+              setFrequency('daily_night');
               setName('');
               setDosage('');
               setNotes('');
@@ -302,6 +305,7 @@ export const MedicationManager: React.FC<Props> = ({
                   onClick={() => handleStartEdit(med)}
                   className="p-1.5 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
                   title="Editar"
+                  aria-label={`Editar ${med.name}`}
                 >
                   <Edit2 className="w-4 h-4" />
                 </button>
@@ -309,6 +313,7 @@ export const MedicationManager: React.FC<Props> = ({
                   onClick={() => handleDelete(med.id)}
                   className="p-1.5 text-stone-400 hover:text-rose-600 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer"
                   title="Excluir"
+                  aria-label={`Excluir ${med.name}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

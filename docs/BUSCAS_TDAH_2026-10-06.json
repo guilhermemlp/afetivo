@@ -1,0 +1,308 @@
+{
+  "consultedAt": "2026-10-06",
+  "provider": "Europe PMC REST resultType=core; pageSize=3 ou 5, primeira página apenas",
+  "queries": [
+    {
+      "query": "EXT_ID:24480998",
+      "hitCount": 1,
+      "returnedIds": [
+        "24480998"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"Emotion dysregulation in adults with attention deficit hyperactivity disorder\"",
+      "hitCount": 2,
+      "returnedIds": [
+        "38231536",
+        "32164655"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"journaling\" AND AUTH_LAST:Sohal",
+      "hitCount": 0,
+      "returnedIds": [],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"Ecological momentary assessment\" AND AUTH_LAST:Shiffman AND FIRST_PDATE:2008",
+      "hitCount": 0,
+      "returnedIds": [],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"International Consensus Statement\" AND AUTH_LAST:Faraone AND FIRST_PDATE:2021",
+      "hitCount": 0,
+      "returnedIds": [],
+      "error": null
+    },
+    {
+      "query": "ADHD AND (\"mood diary\" OR \"mood monitoring\" OR \"daily diary\") AND (systematic OR randomized)",
+      "hitCount": 266,
+      "returnedIds": [
+        "42401958",
+        "42725133",
+        "42074098",
+        "PMC12438594",
+        "42211232"
+      ],
+      "error": null
+    },
+    {
+      "query": "ADHD AND ecological momentary assessment AND review",
+      "hitCount": 901,
+      "returnedIds": [
+        "42126465",
+        "42676659",
+        "42530437",
+        "41980183",
+        "42792307"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"Cognitive-behavioural interventions for attention deficit hyperactivity disorder\"",
+      "hitCount": 1,
+      "returnedIds": [
+        "29566425"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"Efficacy of journaling\"",
+      "hitCount": 1,
+      "returnedIds": [
+        "35304431"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"Ecological momentary assessment\" AND AUTH_FIRST:S AND FIRST_PDATE:[2008-01-01 TO 2008-12-31]",
+      "hitCount": 2,
+      "returnedIds": [
+        "18509902",
+        "19071999"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"World Federation of ADHD International Consensus Statement\"",
+      "hitCount": 1,
+      "returnedIds": [
+        "33549739"
+      ],
+      "error": null
+    },
+    {
+      "query": "EXT_ID:32164655",
+      "hitCount": 1,
+      "returnedIds": [
+        "32164655"
+      ],
+      "error": null
+    },
+    {
+      "query": "EXT_ID:42126465",
+      "hitCount": 1,
+      "returnedIds": [
+        "42126465"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"affect\" AND TITLE:\"circumplex\" AND AUTH_LAST:Russell",
+      "hitCount": 0,
+      "returnedIds": [],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"Constructive and unconstructive repetitive thought\"",
+      "hitCount": 1,
+      "returnedIds": [
+        "18298268"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"circumplex model of affect\"",
+      "hitCount": 6,
+      "returnedIds": [
+        "36571239",
+        "34932494",
+        "27171578",
+        "24234677",
+        "10948981"
+      ],
+      "error": null
+    },
+    {
+      "query": "(TITLE:\"ecological momentary\" OR TITLE:\"daily life\") AND TITLE:\"ADHD\" AND (TITLE:\"adult\" OR TITLE:\"adults\")",
+      "hitCount": 5,
+      "returnedIds": [
+        "40880228",
+        "40849121",
+        "36779529",
+        "37971947",
+        "17495239"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"emotional lability\" AND (AUTH_LAST:Skirrow OR AUTH_LAST:Asherson)",
+      "hitCount": 7,
+      "returnedIds": [
+        "30384113",
+        "28646732",
+        "22882111",
+        "634126",
+        "25066432"
+      ],
+      "error": null
+    },
+    {
+      "query": "TITLE:\"circumplex model of affect\" AND FIRST_PDATE:[2005-01-01 TO 2005-12-31]",
+      "hitCount": 1,
+      "returnedIds": [
+        "16262989"
+      ],
+      "error": null
+    }
+  ],
+  "selectedReferences": [
+    {
+      "id": "24480998",
+      "pmid": "24480998",
+      "pmcid": "PMC4282137",
+      "title": "Emotion dysregulation in attention deficit hyperactivity disorder.",
+      "authorString": "Shaw P, Stringaris A, Nigg J, Leibenluft E.",
+      "doi": "10.1176/appi.ajp.2013.13070966",
+      "pubYear": "2014",
+      "firstPublicationDate": "2014-03-01"
+    },
+    {
+      "id": "38231536",
+      "pmid": "38231536",
+      "pmcid": "PMC10831671",
+      "title": "A Blended Intervention Targeting Emotion Dysregulation in Adults With Attention-Deficit/Hyperactivity Disorder: Development and Feasibility Study.",
+      "authorString": "Nordby ES, Guribye F, Schønning V, Andersen SL, Kuntsi J, Lundervold AJ.",
+      "doi": "10.2196/53931",
+      "pubYear": "2024",
+      "firstPublicationDate": "2024-01-17"
+    },
+    {
+      "id": "32164655",
+      "pmid": "32164655",
+      "pmcid": "PMC7069054",
+      "title": "Emotion dysregulation in adults with attention deficit hyperactivity disorder: a meta-analysis.",
+      "authorString": "Beheshti A, Chavanon ML, Christiansen H.",
+      "doi": "10.1186/s12888-020-2442-7",
+      "pubYear": "2020",
+      "firstPublicationDate": "2020-03-12"
+    },
+    {
+      "id": "42126465",
+      "pmid": "42126465",
+      "pmcid": null,
+      "title": "Ecological Momentary Assessment of Emotion Dysregulation in Attention-Deficit/ Hyperactivity Disorder: A Systematic Review.",
+      "authorString": "Poetar CR, Nistor A.",
+      "doi": "10.1007/s11126-026-10291-6",
+      "pubYear": "2026",
+      "firstPublicationDate": "2026-05-13"
+    },
+    {
+      "id": "29566425",
+      "pmid": "29566425",
+      "pmcid": "PMC6494390",
+      "title": "Cognitive-behavioural interventions for attention deficit hyperactivity disorder (ADHD) in adults.",
+      "authorString": "Lopez PL, Torrente FM, Ciapponi A, Lischinsky AG, Cetkovich-Bakmas M, Rojas JI, Romano M, Manes FF.",
+      "doi": "10.1002/14651858.cd010840.pub2",
+      "pubYear": "2018",
+      "firstPublicationDate": "2018-03-23"
+    },
+    {
+      "id": "35304431",
+      "pmid": "35304431",
+      "pmcid": "PMC8935176",
+      "title": "Efficacy of journaling in the management of mental illness: a systematic review and meta-analysis.",
+      "authorString": "Sohal M, Singh P, Dhillon BS, Gill HS.",
+      "doi": "10.1136/fmch-2021-001154",
+      "pubYear": "2022",
+      "firstPublicationDate": "2022-03-01"
+    },
+    {
+      "id": "18509902",
+      "pmid": "18509902",
+      "pmcid": null,
+      "title": "Ecological momentary assessment.",
+      "authorString": "Shiffman S, Stone AA, Hufford MR.",
+      "doi": "10.1146/annurev.clinpsy.3.022806.091415",
+      "pubYear": "2008",
+      "firstPublicationDate": "2008-01-01"
+    },
+    {
+      "id": "33549739",
+      "pmid": "33549739",
+      "pmcid": "PMC8328933",
+      "title": "The World Federation of ADHD International Consensus Statement: 208 Evidence-based conclusions about the disorder.",
+      "authorString": "Faraone SV, Banaschewski T, Coghill D, Zheng Y, Biederman J, Bellgrove MA, Newcorn JH, Gignac M, Al Saud NM, Manor I, Rohde LA, Yang L, Cortese S, Almagor D, Stein MA, Albatti TH, Aljoudi HF, Alqahtani MMJ, Asherson P, Atwoli L, Bölte S, Buitelaar JK, Crunelle CL, Daley D, Dalsgaard S, Döpfner M, Espinet S, Fitzgerald M, Franke B, Gerlach M, Haavik J, Hartman CA, Hartung CM, Hinshaw SP, Hoekstra PJ, Hollis C, Kollins SH, Sandra Kooij JJ, Kuntsi J, Larsson H, Li T, Liu J, Liu J, Merzon E, Mattingly G, Mattos P, McCarthy S, Mikami AY, Molina BSG, Nigg JT, Purper-Ouakil D, Omigbodun OO, Polanczyk GV, Pollak Y, Poulton AS, Rajkumar RP, Reding A, Reif A, Rubia K, Rucklidge J, Romanos M, Ramos-Quiroga JA, Schellekens A, Scheres A, Schoeman R, Schweitzer JB, Shah H, Solanto MV, Sonuga-Barke E, Soutullo C, Steinhausen HC, Swanson JM, Thapar A, Tripp G, van de Glind G, van den Brink W, Van der Oord S, Venter A, Vitiello B, Walitza S, Wang Y.",
+      "doi": "10.1016/j.neubiorev.2021.01.022",
+      "pubYear": "2021",
+      "firstPublicationDate": "2021-02-04"
+    },
+    {
+      "id": "18298268",
+      "pmid": "18298268",
+      "pmcid": "PMC2672052",
+      "title": "Constructive and unconstructive repetitive thought.",
+      "authorString": "Watkins ER.",
+      "doi": "10.1037/0033-2909.134.2.163",
+      "pubYear": "2008",
+      "firstPublicationDate": "2008-03-01"
+    },
+    {
+      "id": "40849121",
+      "pmid": "40849121",
+      "pmcid": null,
+      "title": "The Emotional Pendulum in ADHD: Insights From Ecological Momentary Assessment of Emotional States in Young Adults.",
+      "authorString": "Yitzhak N, Cohen M, Traub Bar-Ilan R, Maeir A, Eldar E, Nahum M.",
+      "doi": "10.1016/j.beth.2025.03.004",
+      "pubYear": "2025",
+      "firstPublicationDate": "2025-03-13"
+    },
+    {
+      "id": "37971947",
+      "pmid": "37971947",
+      "pmcid": null,
+      "title": "Coping with emotional dysregulation among young adults with ADHD: A mixed-method study of self-awareness and strategies in daily life.",
+      "authorString": "Ben-Dor Cohen M, Nahum M, Traub Bar-Ilan R, Eldar E, Maeir A.",
+      "doi": "10.1080/09602011.2023.2279181",
+      "pubYear": "2024",
+      "firstPublicationDate": "2023-11-16"
+    },
+    {
+      "id": "25066432",
+      "pmid": "25066432",
+      "pmcid": null,
+      "title": "Everyday emotional experience of adults with attention deficit hyperactivity disorder: evidence for reactive and endogenous emotional lability.",
+      "authorString": "Skirrow C, Ebner-Priemer U, Reinhard I, Malliaris Y, Kuntsi J, Asherson P.",
+      "doi": "10.1017/s0033291714001032",
+      "pubYear": "2014",
+      "firstPublicationDate": "2014-05-15"
+    },
+    {
+      "id": "16262989",
+      "pmid": "16262989",
+      "pmcid": "PMC2367156",
+      "title": "The circumplex model of affect: an integrative approach to affective neuroscience, cognitive development, and psychopathology.",
+      "authorString": "Posner J, Russell JA, Peterson BS.",
+      "doi": "10.1017/s0954579405050340",
+      "pubYear": "2005",
+      "firstPublicationDate": "2005-01-01"
+    }
+  ],
+  "fullTextExamined": [
+    "PMC7069054: resumo, discussão e limitações",
+    "NICE NG87: recomendações e definição de modificações ambientais"
+  ]
+}

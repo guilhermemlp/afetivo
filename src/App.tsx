@@ -12,6 +12,7 @@ import {
   saveMedications,
   resetAllDataToDemo,
   clearAllUserData,
+  loadUserProfile,
 } from './services/storage';
 import { AfetivogramaChart } from './components/AfetivogramaChart';
 import { QuickMoodLogger } from './components/QuickMoodLogger';
@@ -21,6 +22,7 @@ import { JournalFeed } from './components/JournalFeed';
 import { ClinicalReportModal } from './components/ClinicalReportModal';
 import { PlanningGuideModal } from './components/PlanningGuideModal';
 import { DataBackupModal } from './components/DataBackupModal';
+import { useConfirmation } from './components/ConfirmationProvider';
 import {
   BookOpen,
   Brain,
@@ -35,8 +37,15 @@ import {
 type NavTab = 'dashboard' | 'feed' | 'patterns' | 'medications';
 
 export default function App() {
+  const confirm = useConfirmation();
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const persist = (operation: () => void) => {
+    try { operation(); setStorageError(null); return true; }
+    catch { setStorageError('Não foi possível salvar no navegador. Verifique o espaço disponível e as permissões de armazenamento.'); return false; }
+  };
   const [entries, setEntries] = useState<AfetivoEntry[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [userName, setUserName] = useState('Guilherme');
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [timeFrameDays, setTimeFrameDays] = useState<number>(14);
 
@@ -53,66 +62,59 @@ export default function App() {
     const loadedMeds = loadMedications();
     setEntries(loadedEntries);
     setMedications(loadedMeds);
+    setUserName(loadUserProfile().name);
   }, []);
 
   // Handlers
-  const handleSaveEntry = (newEntry: AfetivoEntry) => {
-    const existingIndex = entries.findIndex((e) => e.id === newEntry.id);
-    let updated: AfetivoEntry[];
+  const handleSaveEntry = async (newEntry: AfetivoEntry) => {
+    const updated = entries.filter(entry => entry.id !== newEntry.id);
+    updated.push(newEntry);
+    updated.sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
 
-    if (existingIndex >= 0) {
-      updated = [...entries];
-      updated[existingIndex] = newEntry;
-    } else {
-      const sameDateIndex = entries.findIndex((e) => e.date === newEntry.date);
-      if (sameDateIndex >= 0) {
-        updated = [...entries];
-        updated[sameDateIndex] = newEntry;
-      } else {
-        updated = [newEntry, ...entries];
-      }
-    }
-
+    if (!persist(() => saveEntries(updated))) throw new Error('Não foi possível salvar no navegador. Verifique o espaço disponível e as permissões de armazenamento.');
     setEntries(updated);
-    saveEntries(updated);
     setIsLoggerOpen(false);
     setEditingEntry(null);
+    return true;
   };
 
-  const handleDeleteEntry = (id: string) => {
-    if (confirm('Deseja realmente excluir este registro?')) {
+  const handleDeleteEntry = async (id: string) => {
+    if (await confirm('Deseja realmente excluir este registro?')) {
       const updated = entries.filter((e) => e.id !== id);
-      setEntries(updated);
-      saveEntries(updated);
+      if (persist(() => saveEntries(updated))) setEntries(updated);
     }
   };
 
   const handleUpdateMedications = (newMeds: Medication[]) => {
+    if (!persist(() => saveMedications(newMeds))) return false;
     setMedications(newMeds);
-    saveMedications(newMeds);
+    return true;
   };
 
-  const handleResetToDemo = () => {
-    if (confirm('Deseja redefinir os dados para o conjunto demonstrativo de 14 dias?')) {
-      resetAllDataToDemo();
+  const handleResetToDemo = async () => {
+    if (await confirm('Deseja redefinir os dados para o conjunto demonstrativo de 14 dias?')) {
+      if (!persist(resetAllDataToDemo)) return;
       setEntries(loadEntries());
       setMedications(loadMedications());
     }
   };
 
-  const handleClearAll = () => {
-    if (confirm('Deseja apagar todos os registros e iniciar seu diário do zero?')) {
-      clearAllUserData();
+  const handleClearAll = async () => {
+    if (await confirm('Deseja apagar todos os registros e iniciar seu diário do zero?')) {
+      if (!persist(clearAllUserData)) return;
       setEntries([]);
       setMedications([]);
+      setUserName('Guilherme');
     }
   };
 
-  const totalDays = entries.length;
+  const realEntries = entries.filter(e => !e.isDemo);
+  const totalDays = new Set(realEntries.map(e => e.date)).size;
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100 flex flex-col font-sans antialiased">
-      {/* Top Bar following Top Bar Contract */}
+      {entries.some(e => e.isDemo) && <p role="status" className="bg-amber-50 text-amber-900 px-4 py-3 text-sm">Demonstração: os exemplos são fictícios e ficam fora das análises e dos relatórios pessoais.</p>}
+      {/* Top Bar */}
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-stone-900/95 backdrop-blur-md border-b border-stone-200 dark:border-stone-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           {/* Zone 1: Single text element wordmark */}
@@ -157,7 +159,7 @@ export default function App() {
                   : ''
               }`}
             >
-              Análise de Padrões & IA
+              Análise de Padrões
             </button>
             <button
               onClick={() => setActiveTab('medications')}
@@ -232,7 +234,7 @@ export default function App() {
                 : 'text-stone-600 dark:text-stone-400'
             }`}
           >
-            Padrões & IA
+            Padrões
           </button>
           <button
             onClick={() => setActiveTab('medications')}
@@ -253,6 +255,8 @@ export default function App() {
         </div>
       </header>
 
+      {storageError && <p role="alert" className="mx-auto w-full max-w-6xl px-6 py-3 text-sm text-rose-700">{storageError}</p>}
+
       {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-6">
         {/* VIEW 1: DASHBOARD */}
@@ -264,7 +268,7 @@ export default function App() {
                 <div className="flex items-center gap-2 text-xs text-stone-500">
                   <span>Monitoramento Pessoal</span>
                   <span aria-hidden="true">·</span>
-                  <span>{totalDays} dias registrados</span>
+                  <span>{realEntries.length} registros em {totalDays} dias</span>
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100 mt-0.5">
                   Painel de Humor, Emoções & Hábitos
@@ -317,14 +321,14 @@ export default function App() {
                     Analisar Padrões de Humor & Sono
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Veja como suas noites de sono e acontecimentos diários se relacionam com sua disposição e momentos de impulsividade.
+                    Consulte os contextos relatados, as respostas disponíveis e os detalhes que você escolheu guardar.
                   </p>
                 </div>
                 <button
                   onClick={() => setActiveTab('patterns')}
                   className="mt-4 px-3 py-2 rounded-lg bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-medium text-xs flex items-center justify-between transition-colors cursor-pointer"
                 >
-                  <span>Ver Padrões & Sugestões</span>
+                  <span>Ver Meus Registros</span>
                   <span>→</span>
                 </button>
               </div>
@@ -337,10 +341,10 @@ export default function App() {
                     <span>Resumo Pessoal</span>
                   </div>
                   <h3 className="font-semibold text-stone-900 dark:text-stone-100 text-sm">
-                    Resumo para Conversas & Terapia
+                    Resumo dos Seus Registros
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Gere uma síntese em texto com dados objetivos sobre sono, oscilações de energia e impulsos para auto-análise ou acompanhamento.
+                    Guarde um resumo de humor, ativação, sono e contexto, com os limites das respostas disponíveis.
                   </p>
                 </div>
                 <button
@@ -363,7 +367,7 @@ export default function App() {
                     Como Analisar Suas Emoções
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Entenda como registrar gatilhos, usar a regra dos 15 minutos para conter impulsos e testar mudanças práticas na rotina.
+                    Veja como registrar emoções e contexto, pular detalhes e retomar quando quiser.
                   </p>
                 </div>
                 <button
@@ -390,11 +394,10 @@ export default function App() {
           />
         )}
 
-        {/* VIEW 3: PATTERNS & AI */}
+        {/* VIEW 3: PATTERNS */}
         {activeTab === 'patterns' && (
           <PatternAnalyzer
             entries={entries}
-            medications={medications}
             onOpenReportModal={() => setIsReportOpen(true)}
           />
         )}
@@ -415,7 +418,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span>Afetivo © 2026</span>
             <span aria-hidden="true">·</span>
-            <span>Diário de Humor, Emoções & Controle de Impulsos</span>
+            <span>Diário de Humor, Emoções & Contexto</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -450,6 +453,7 @@ export default function App() {
           onDataRestored={() => {
             setEntries(loadEntries());
             setMedications(loadMedications());
+            setUserName(loadUserProfile().name);
           }}
         />
       )}
@@ -458,7 +462,6 @@ export default function App() {
         <QuickMoodLogger
           medications={medications}
           initialEntry={editingEntry}
-          lastEntry={entries.length > 0 ? entries[0] : null}
           onSave={handleSaveEntry}
           onClose={() => {
             setIsLoggerOpen(false);
@@ -471,7 +474,7 @@ export default function App() {
         <ClinicalReportModal
           entries={entries}
           medications={medications}
-          userName="Guilherme"
+          userName={userName}
           onClose={() => setIsReportOpen(false)}
         />
       )}

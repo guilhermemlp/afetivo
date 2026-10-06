@@ -1,4 +1,10 @@
+import { impulseLabel } from './observations';
+import { localDate } from './dates';
+import { validateEntries, validateMedications, validateProfile } from './validation';
 import { AfetivoEntry, Medication, UserProfile, PatientProfile } from '../types/mood';
+
+export const DATA_CHANGED_EVENT = 'afetivo-data-changed';
+function dataChanged() { if (typeof window !== 'undefined') window.dispatchEvent(new Event(DATA_CHANGED_EVENT)); }
 
 const ENTRIES_STORAGE_KEY = 'afetivo_entries_v2';
 const OLD_ENTRIES_STORAGE_KEY = 'afetivo_entries_v1';
@@ -404,7 +410,7 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
   scenarios.forEach((sc, index) => {
     const d = new Date(today);
     d.setDate(d.getDate() - sc.daysAgo);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = localDate(d);
 
     const medIntakes = INITIAL_MEDICATIONS.map((med) => ({
       medicationId: med.id,
@@ -417,6 +423,7 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
       id: `entry-seed-${index + 1}`,
       date: dateStr,
       time: '21:30',
+      isDemo: true, moodScale: 'legacy',
       moodScore: sc.moodScore,
       moodLabel: sc.moodLabel,
       isMixedState: sc.isMixedState,
@@ -444,54 +451,42 @@ export function generateInitialSeedEntries(): AfetivoEntry[] {
   return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
-// Sanitizer to convert any legacy psychiatric strings or outdated fields into self-regulation terms
+// Normalize missing legacy fields without rewriting the user's notes or medication names.
 function sanitizeEntry(entry: AfetivoEntry): AfetivoEntry {
-  const e = { ...entry };
-  e.physicalActivities = e.physicalActivities || [];
-  e.protectiveFactors = e.protectiveFactors || [];
-  e.customTags = e.customTags || [];
-
-  if (e.medicationIntakes && Array.isArray(e.medicationIntakes)) {
-    e.medicationIntakes = e.medicationIntakes.map((m) => {
-      let name = m.medicationName || '';
-      if (name.includes('Estabilizador') || name.includes('Medicação 1')) {
-        name = 'Acompanhamento de Rotina Manhã';
-      } else if (name.includes('Medicação para Sono')) {
-        name = 'Suplemento / Magnésio Noturno';
-      } else if (name.includes('Suplemento / Medicação Manhã')) {
-        name = 'Hidratação & Autocuidado';
-      }
-      return { ...m, medicationName: name };
-    });
+  // Recognize only unchanged historical demo fixtures, never personal notes or unknown IDs.
+  if (entry.isDemo === undefined && /^entry-seed-\d+$/.test(entry.id)) {
+    const fixture = generateInitialSeedEntries().find(e => e.id === entry.id);
+    const ignored = new Set(['date', 'createdAt', 'isDemo', 'moodScale']);
+    if (fixture && Object.keys(fixture).filter(key => !ignored.has(key)).every(key =>
+      JSON.stringify(entry[key as keyof AfetivoEntry]) === JSON.stringify(fixture[key as keyof AfetivoEntry]))) {
+      return validateEntries([{ ...entry, isDemo: true }])[0];
+    }
   }
-
-  if (e.journalNotes) {
-    e.journalNotes = e.journalNotes
-      .replace(/tomei as medicações no horário correto/gi, 'mantive a rotina de hábitos e hidratação no horário correto')
-      .replace(/remédios da rotina/gi, 'hábitos e rotina diária')
-      .replace(/remédios/gi, 'hábitos de rotina')
-      .replace(/psiquiatra/gi, 'terapeuta');
-  }
-
-  return e;
+  return validateEntries([entry])[0];
 }
 
 function sanitizeMedication(med: Medication): Medication {
-  let name = med.name || '';
-  let category = med.category;
+  return validateMedications([med])[0];
+}
 
-  if (name.includes('Estabilizador') || name.includes('Medicação 1')) {
-    name = 'Acompanhamento de Rotina Manhã';
-    category = 'supplement';
-  } else if (name.includes('Medicação para Sono')) {
-    name = 'Suplemento / Magnésio Noturno';
-    category = 'sleep_aid';
-  } else if (name.includes('Suplemento / Medicação Manhã')) {
-    name = 'Hidratação & Autocuidado';
-    category = 'other';
+// Multi-key writes must either complete or preserve the previous backup.
+function writeData(values: Record<string, string | null>): void {
+  const previous = Object.fromEntries(Object.keys(values).map(key => [key, localStorage.getItem(key)]));
+  try {
+    for (const [key, value] of Object.entries(values)) {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    }
+  } catch (error) {
+    for (const [key, value] of Object.entries(previous)) {
+      try {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      } catch { /* Keep the original storage error. */ }
+    }
+    throw error;
   }
-
-  return { ...med, name, category };
+  dataChanged();
 }
 
 export function loadEntries(): AfetivoEntry[] {
@@ -503,7 +498,7 @@ export function loadEntries(): AfetivoEntry[] {
       if (legacyRaw) {
         try {
           const legacyParsed = JSON.parse(legacyRaw);
-          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+          if (Array.isArray(legacyParsed)) {
             const sanitized = legacyParsed.map(sanitizeEntry);
             localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(sanitized));
             localStorage.removeItem(OLD_ENTRIES_STORAGE_KEY);
@@ -514,7 +509,7 @@ export function loadEntries(): AfetivoEntry[] {
         }
       }
 
-      const seeded = generateInitialSeedEntries();
+      const seeded: AfetivoEntry[] = [];
       localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(seeded));
       return seeded;
     }
@@ -529,12 +524,8 @@ export function loadEntries(): AfetivoEntry[] {
 }
 
 export function saveEntries(entries: AfetivoEntry[]): void {
-  try {
-    const sanitized = entries.map(sanitizeEntry);
-    localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(sanitized));
-  } catch (err) {
-    console.error('Error saving entries to localStorage', err);
-  }
+  localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(validateEntries(entries)));
+  dataChanged();
 }
 
 export function loadMedications(): Medication[] {
@@ -545,7 +536,7 @@ export function loadMedications(): Medication[] {
       if (legacyRaw) {
         try {
           const legacyParsed = JSON.parse(legacyRaw);
-          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+          if (Array.isArray(legacyParsed)) {
             const sanitized = legacyParsed.map(sanitizeMedication);
             localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(sanitized));
             localStorage.removeItem(OLD_MEDICATIONS_STORAGE_KEY);
@@ -556,26 +547,22 @@ export function loadMedications(): Medication[] {
         }
       }
 
-      localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(INITIAL_MEDICATIONS));
-      return INITIAL_MEDICATIONS;
+      localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
 
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return INITIAL_MEDICATIONS;
+    if (!Array.isArray(parsed)) return [];
     return parsed.map(sanitizeMedication);
   } catch (err) {
     console.error('Error loading medications', err);
-    return INITIAL_MEDICATIONS;
+    return [];
   }
 }
 
 export function saveMedications(meds: Medication[]): void {
-  try {
-    const sanitized = meds.map(sanitizeMedication);
-    localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(sanitized));
-  } catch (err) {
-    console.error('Error saving medications', err);
-  }
+  localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(validateMedications(meds)));
+  dataChanged();
 }
 
 export function loadUserProfile(): UserProfile {
@@ -607,7 +594,7 @@ export function loadUserProfile(): UserProfile {
       localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(defaultProfile));
       return defaultProfile;
     }
-    return JSON.parse(raw);
+    return validateProfile(JSON.parse(raw));
   } catch {
     return {
       name: 'Guilherme',
@@ -617,11 +604,8 @@ export function loadUserProfile(): UserProfile {
 }
 
 export function saveUserProfile(profile: UserProfile): void {
-  try {
-    localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(profile));
-  } catch (err) {
-    console.error('Error saving profile', err);
-  }
+  localStorage.setItem(USER_PROFILE_KEY, JSON.stringify(validateProfile(profile)));
+  dataChanged();
 }
 
 // Backwards compatibility functions
@@ -629,21 +613,20 @@ export const loadPatientProfile = loadUserProfile;
 export const savePatientProfile = saveUserProfile;
 
 export function resetAllDataToDemo(): void {
-  const seeded = generateInitialSeedEntries();
-  localStorage.setItem(ENTRIES_STORAGE_KEY, JSON.stringify(seeded));
-  localStorage.setItem(MEDICATIONS_STORAGE_KEY, JSON.stringify(INITIAL_MEDICATIONS));
-  localStorage.removeItem(OLD_ENTRIES_STORAGE_KEY);
-  localStorage.removeItem(OLD_MEDICATIONS_STORAGE_KEY);
-  localStorage.removeItem(OLD_PATIENT_PROFILE_KEY);
+  writeData({
+    [ENTRIES_STORAGE_KEY]: JSON.stringify(generateInitialSeedEntries()),
+    [MEDICATIONS_STORAGE_KEY]: JSON.stringify(INITIAL_MEDICATIONS),
+    [OLD_ENTRIES_STORAGE_KEY]: null, [OLD_MEDICATIONS_STORAGE_KEY]: null,
+  });
 }
 
 export function clearAllUserData(): void {
-  localStorage.removeItem(ENTRIES_STORAGE_KEY);
-  localStorage.removeItem(OLD_ENTRIES_STORAGE_KEY);
-  localStorage.removeItem(MEDICATIONS_STORAGE_KEY);
-  localStorage.removeItem(OLD_MEDICATIONS_STORAGE_KEY);
-  localStorage.removeItem(USER_PROFILE_KEY);
-  localStorage.removeItem(OLD_PATIENT_PROFILE_KEY);
+  // Empty arrays distinguish an intentionally empty diary from a first visit.
+  writeData({
+    [ENTRIES_STORAGE_KEY]: '[]', [MEDICATIONS_STORAGE_KEY]: '[]',
+    [OLD_ENTRIES_STORAGE_KEY]: null, [OLD_MEDICATIONS_STORAGE_KEY]: null,
+    [USER_PROFILE_KEY]: null, [OLD_PATIENT_PROFILE_KEY]: null,
+  });
 }
 
 export interface BackupPayload {
@@ -668,7 +651,7 @@ export function exportDataAsJSON(): string {
   });
 
   const payload: BackupPayload = {
-    version: '2.0',
+    version: '3.0',
     system: 'Sistema Afetivo - Acompanhamento de Humor, Hábitos & Regulação Emocional',
     exportedAt: new Date().toISOString(),
     totalEntries: entries.length,
@@ -705,18 +688,19 @@ export function exportDataAsCSV(): string {
     'Tags_Personalizadas',
     'Rotina_Medicacoes_Suplementos',
     'Notas_Diario',
-    'Notas_Gratidao',
+    'Notas_Gratidao', 'Escala_Humor', 'Tipo_Registro', 'Ativacao_1a5', 'Contextos', 'Proximo_Passo', 'Estrategia_Avaliacao', 'Secoes_Respondidas', 'Demonstracao',
   ];
 
-  const escapeCsv = (str: string | number | boolean | undefined) => {
+  const escapeCsv = (str: string | number | boolean | null | undefined) => {
     if (str === undefined || str === null) return '""';
-    const clean = String(str).replace(/"/g, '""');
+    const value = typeof str === 'string' && /^[\s]*[=+@-]/.test(str) ? `'${str}` : String(str);
+    const clean = value.replace(/"/g, '""');
     return `"${clean}"`;
   };
 
   const rows = entries.map((e) => {
     const workoutsStr = (e.physicalActivities || [])
-      .map((w) => `${w.type} (${w.durationMinutes}min, ${w.intensity}${w.postWorkoutFeeling ? `, pós: ${w.postWorkoutFeeling}` : ''})`)
+      .map((w) => `${w.type} (${w.durationMinutes == null ? 'duração não informada' : `${w.durationMinutes}min`}, ${w.intensity ?? 'intensidade não informada'}${w.postWorkoutFeeling ? `, pós: ${w.postWorkoutFeeling}` : ''})`)
       .join('; ');
 
     const totalMinutes = (e.physicalActivities || []).reduce(
@@ -726,11 +710,7 @@ export function exportDataAsCSV(): string {
 
     const impulsesStr = (e.impulsiveBehaviors || [])
       .map((i) => {
-        let resistedLabel = i.resisted;
-        if (i.resisted === 'resisted_fully') resistedLabel = 'Resistiu totalmente' as any;
-        else if (i.resisted === 'delayed') resistedLabel = 'Adiou 15min' as any;
-        else if (i.resisted === 'yielded_partially') resistedLabel = 'Parcialmente contido' as any;
-        else resistedLabel = 'Cedeu' as any;
+        const resistedLabel = impulseLabel(i);
         return `${i.type} [${resistedLabel}${i.reflection ? ` - ${i.reflection}` : ''}]`;
       })
       .join('; ');
@@ -741,7 +721,7 @@ export function exportDataAsCSV(): string {
       .map((m) => {
         const statusMap: Record<string, string> = {
           taken: 'Tomado',
-          skipped: 'Esquecido',
+          skipped: 'Não tomado',
           delayed: 'Atrasado',
           extra_dose: 'Dose extra',
         };
@@ -757,7 +737,7 @@ export function exportDataAsCSV(): string {
       escapeCsv(e.time),
       escapeCsv(e.moodScore),
       escapeCsv(e.moodLabel),
-      escapeCsv(e.isMixedState ? 'Sim' : 'Nao'),
+      escapeCsv(e.isMixedState == null ? '' : e.isMixedState ? 'Sim' : 'Nao'),
       escapeCsv(e.sleepHours),
       escapeCsv(e.sleepQuality),
       escapeCsv(e.sleepLatencyMinutes ?? ''),
@@ -765,7 +745,7 @@ export function exportDataAsCSV(): string {
       escapeCsv(e.anxietyLevel),
       escapeCsv(e.irritabilityLevel),
       escapeCsv(workoutsStr),
-      escapeCsv(totalMinutes),
+      escapeCsv(e.physicalActivities?.some(w => w.durationMinutes == null) ? null : e.physicalActivities?.length ? totalMinutes : e.observedSections?.includes('activities') ? 0 : ''),
       escapeCsv(e.emotions?.join(', ')),
       escapeCsv(e.somaticSymptoms?.join(', ')),
       escapeCsv(e.triggers?.join(', ')),
@@ -775,7 +755,7 @@ export function exportDataAsCSV(): string {
       escapeCsv(tagsStr),
       escapeCsv(medIntakesStr),
       escapeCsv(e.journalNotes),
-      escapeCsv(e.gratitudeNotes),
+      escapeCsv(e.gratitudeNotes), escapeCsv(e.moodScale ?? 'legacy'), escapeCsv(e.recordKind ?? 'legacy'), escapeCsv(e.activationLevel), escapeCsv(e.contexts?.join('; ')), escapeCsv(e.nextStep), escapeCsv(e.strategyEffect), escapeCsv(e.observedSections?.join('; ')), escapeCsv(Boolean(e.isDemo)),
     ].join(',');
   });
 
@@ -800,6 +780,7 @@ export function importDataFromJSON(jsonString: string): {
       if (Array.isArray(data.entries)) {
         entriesToSave = data.entries;
       }
+      if ('medications' in data && !Array.isArray(data.medications)) throw new Error('Lista de medicamentos inválida.');
       if (Array.isArray(data.medications)) {
         medsToSave = data.medications;
       }
@@ -812,13 +793,14 @@ export function importDataFromJSON(jsonString: string): {
       return { success: false, error: 'Arquivo JSON inválido. Não foram encontrados registros de humor.' };
     }
 
-    saveEntries(entriesToSave);
-    if (medsToSave) {
-      saveMedications(medsToSave);
-    }
-    if (profileToSave) {
-      saveUserProfile(profileToSave);
-    }
+    // Validate every section before touching any existing data.
+    const values: Record<string, string | null> = {
+      [ENTRIES_STORAGE_KEY]: JSON.stringify(validateEntries(entriesToSave)),
+      [OLD_ENTRIES_STORAGE_KEY]: null,
+    };
+    if (medsToSave) values[MEDICATIONS_STORAGE_KEY] = JSON.stringify(validateMedications(medsToSave));
+    if (profileToSave) values[USER_PROFILE_KEY] = JSON.stringify(validateProfile(profileToSave));
+    writeData(values);
 
     return {
       success: true,

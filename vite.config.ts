@@ -4,6 +4,7 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
+  const configuredPort = Number.parseInt(process.env.PORT ?? '', 10);
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -17,6 +18,10 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+    preview: {
+      host: '0.0.0.0',
+      port: Number.isFinite(configuredPort) ? configuredPort : 4173,
     },
   };
 });
