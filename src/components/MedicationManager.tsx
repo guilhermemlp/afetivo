@@ -177,10 +177,11 @@ export const MedicationManager: React.FC<Props> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
+              <label htmlFor="medication-name" className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
                 Nome do Remédio ou Suplemento *
               </label>
               <input
+                id="medication-name"
                 type="text"
                 placeholder="Ex: Regulador, Melatonina, Vitamina D..."
                 value={name}
@@ -191,10 +192,11 @@ export const MedicationManager: React.FC<Props> = ({
             </div>
 
             <div>
-              <label className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
+              <label htmlFor="medication-dosage" className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
                 Dosagem
               </label>
               <input
+                id="medication-dosage"
                 type="text"
                 placeholder="Ex: 300mg, 50mg, 1 cápsula..."
                 value={dosage}
@@ -204,10 +206,11 @@ export const MedicationManager: React.FC<Props> = ({
             </div>
 
             <div>
-              <label className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
+              <label htmlFor="medication-category" className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
                 Categoria
               </label>
               <select
+                id="medication-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as MedicationCategory)}
                 className="w-full px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 text-xs"
@@ -223,10 +226,11 @@ export const MedicationManager: React.FC<Props> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
+              <label htmlFor="medication-frequency" className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
                 Horário habitual
               </label>
               <select
+                id="medication-frequency"
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value as any)}
                 className="w-full px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 text-xs"
@@ -239,10 +243,11 @@ export const MedicationManager: React.FC<Props> = ({
             </div>
 
             <div>
-              <label className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
+              <label htmlFor="medication-notes" className="block text-xs text-stone-600 dark:text-stone-400 mb-1">
                 Observações ou orientações
               </label>
               <input
+                id="medication-notes"
                 type="text"
                 placeholder="Ex: Tomar após refeição; para ajudar a relaxar à noite..."
                 value={notes}
