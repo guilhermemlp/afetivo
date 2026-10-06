@@ -18,6 +18,12 @@ const NAV_ITEMS = [
 export function AppShell() {
   return (
     <div className="flex min-h-screen flex-col bg-canvas text-ink">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-20 focus:rounded-lg focus:bg-brand focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-brand-ink"
+      >
+        Pular para o conteúdo
+      </a>
       <header className="sticky top-0 z-10 border-b border-edge bg-canvas/90 backdrop-blur">
         <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3">
           <Link
@@ -50,7 +56,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main id="conteudo" className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
         <Outlet />
       </main>
 
