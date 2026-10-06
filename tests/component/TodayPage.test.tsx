@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setAppStore } from '@/data/appStore';
@@ -51,5 +51,23 @@ describe('TodayPage', () => {
     expect(entries.every((entry) => entry.moodScore === null)).toBe(true);
     expect(entries.every((entry) => entry.activationLevel === null)).toBe(true);
     expect(entries[0]?.date).toBe(entries[1]?.date);
+  });
+
+  it('abre o registro detalhado e salva mesmo sem registro rápido', async () => {
+    const store = setupStore();
+    const user = userEvent.setup();
+    renderApp(<TodayPage />);
+    await screen.findByText('Nenhum registro hoje');
+
+    await user.click(screen.getByRole('button', { name: 'Mais detalhes' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Detalhes do registro' });
+
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar detalhes' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    const entries = await store.entries.list();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]?.moodScore).toBeNull();
+    expect(entries[0]?.recordKind).toBe('moment');
   });
 });

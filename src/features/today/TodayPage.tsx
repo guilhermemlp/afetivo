@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isValidTime, localDate, localTime } from '@/core/dates';
-import { createBlankEntry, withUpdates } from '@/core/entry';
+import { createBlankEntry, withUpdates, type Entry } from '@/core/entry';
 import {
   ACTIVATION_VALUES,
   moodLabel,
@@ -20,6 +20,7 @@ import {
   inputClass,
 } from '@/components/ui';
 import { useEntries, useSaveEntry } from '@/data/hooks';
+import { EntryDetailsModal } from '@/features/entryDetails/EntryDetailsModal';
 
 const QUICK_SCALES = [
   { key: 'anxiety', label: 'Ansiedade' },
@@ -48,12 +49,18 @@ export function TodayPage() {
   });
   const [time, setTime] = useState(() => localTime(new Date()));
   const [status, setStatus] = useState<Status>(null);
+  const [details, setDetails] = useState<Entry | null>(null);
 
   const today = localDate(new Date());
   const todayEntries = useMemo(
     () => entries.filter((entry) => entry.date === today),
     [entries, today],
   );
+
+  /** Detalhes vão para o registro mais recente de hoje (ou um novo). */
+  function openDetails(): void {
+    setDetails(todayEntries[0] ?? createBlankEntry());
+  }
 
   function updateScale(key: QuickScaleKey, value: number | null): void {
     setScales((current) => ({ ...current, [key]: value }));
@@ -194,6 +201,9 @@ export function TodayPage() {
           <Button onClick={handleSave} loading={save.isPending} className="w-full sm:w-auto">
             Salvar registro
           </Button>
+          <Button variant="secondary" onClick={openDetails} className="w-full sm:w-auto">
+            Mais detalhes
+          </Button>
         </div>
 
         {status && (
@@ -242,6 +252,10 @@ export function TodayPage() {
           </ul>
         )}
       </section>
+
+      {details && (
+        <EntryDetailsModal key={details.id} entry={details} onClose={() => setDetails(null)} />
+      )}
     </section>
   );
 }

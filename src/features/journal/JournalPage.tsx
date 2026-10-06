@@ -5,6 +5,7 @@ import type { Entry } from '@/core/entry';
 import { moodLabel, moodZone } from '@/core/mood';
 import { buttonClass, ChoiceButton, EmptyState, Field, Skeleton } from '@/components/ui';
 import { useEntries } from '@/data/hooks';
+import { EntryDetailsModal } from '@/features/entryDetails/EntryDetailsModal';
 import { EditEntryModal } from './EditEntryModal';
 
 type ZoneFilter = 'todas' | 'baixo' | 'equilibrado' | 'elevado';
@@ -39,6 +40,7 @@ export function JournalPage() {
   const [query, setQuery] = useState('');
   const [zone, setZone] = useState<ZoneFilter>('todas');
   const [editing, setEditing] = useState<Entry | null>(null);
+  const [details, setDetails] = useState<Entry | null>(null);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -120,14 +122,24 @@ export function JournalPage() {
                     · {weekdayBR(entry.date)} · {entry.time}
                   </span>
                 </p>
-                <button
-                  type="button"
-                  className={buttonClass('ghost', 'sm')}
-                  onClick={() => setEditing(entry)}
-                  aria-label={`Editar registro das ${entry.time} em ${formatDateBR(entry.date)}`}
-                >
-                  Editar
-                </button>
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    className={buttonClass('ghost', 'sm')}
+                    onClick={() => setDetails(entry)}
+                    aria-label={`Detalhes do registro das ${entry.time} em ${formatDateBR(entry.date)}`}
+                  >
+                    Detalhes
+                  </button>
+                  <button
+                    type="button"
+                    className={buttonClass('ghost', 'sm')}
+                    onClick={() => setEditing(entry)}
+                    aria-label={`Editar registro das ${entry.time} em ${formatDateBR(entry.date)}`}
+                  >
+                    Editar
+                  </button>
+                </div>
               </div>
               <p className="mt-1 text-sm">
                 {moodLabel(entry)} · {activationText(entry)}
@@ -154,6 +166,9 @@ export function JournalPage() {
 
       {editing && (
         <EditEntryModal key={editing.id} entry={editing} onClose={() => setEditing(null)} />
+      )}
+      {details && (
+        <EntryDetailsModal key={details.id} entry={details} onClose={() => setDetails(null)} />
       )}
     </section>
   );

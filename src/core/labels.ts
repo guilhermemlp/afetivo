@@ -99,3 +99,14 @@ export const MEDICATION_EVENT_KIND_LABELS = {
   resume: 'Retomada',
   side_effect: 'Efeito colateral',
 } as const;
+
+export const TAG_KIND_LABELS = {
+  emotion: 'Emoção',
+  somatic: 'Corpo / somático',
+  trigger: 'Gatilho',
+  activity: 'Atividade',
+  context: 'Contexto',
+  domain: 'Domínio',
+  protective: 'Protetor',
+  custom: 'Personalizado',
+} as const;

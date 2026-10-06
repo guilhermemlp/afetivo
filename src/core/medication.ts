@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { localDate, localTime } from './dates';
 
 export const MEDICATION_CATEGORIES = [
   'mood_stabilizer',
@@ -80,4 +81,29 @@ export function createBlankMedication(name: string, now = Date.now()): Medicatio
 
 export function parseMedicationEvent(value: unknown): MedicationEvent {
   return medicationEventSchema.parse(value);
+}
+
+/** Novo evento (data/hora preenchidas com o instante atual quando omitidas). */
+export function createMedicationEvent(
+  input: {
+    medicationId: string;
+    medicationName: string;
+    kind: MedicationEvent['kind'];
+    date?: string;
+    time?: string;
+    dose?: string | null;
+    status?: MedicationEvent['status'];
+    sideEffects?: string[];
+    notes?: string | null;
+  },
+  now = Date.now(),
+): MedicationEvent {
+  return medicationEventSchema.parse({
+    ...input,
+    id: crypto.randomUUID(),
+    date: input.date ?? localDate(new Date(now)),
+    time: input.time ?? localTime(new Date(now)),
+    createdAt: now,
+    updatedAt: now,
+  });
 }

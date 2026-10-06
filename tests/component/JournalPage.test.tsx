@@ -119,4 +119,16 @@ describe('JournalPage', () => {
     expect(await screen.findByText('Nenhum registro ainda')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Registrar um momento' })).toHaveAttribute('href', '/');
   });
+
+  it('abre o detalhe do registro pelo feed', async () => {
+    setupStore({ entries: seedEntries() });
+    const user = userEvent.setup();
+    renderApp(<JournalPage />);
+
+    await user.click(
+      await screen.findByRole('button', { name: 'Detalhes do registro das 08:15 em 06/10/2026' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Detalhes do registro' });
+    expect(within(dialog).getByText(/Tudo é opcional/)).toBeInTheDocument();
+  });
 });
