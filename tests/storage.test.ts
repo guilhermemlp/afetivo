@@ -4,6 +4,7 @@ import {
   clearAllUserData, exportDataAsJSON, exportDataAsCSV, generateInitialSeedEntries,
   importDataFromJSON, loadEntries, loadMedications, resetAllDataToDemo, saveEntries, saveMedications,
 } from '../src/services/storage';
+import { ENTRY_DRAFT_STORAGE_KEY } from '../src/services/entryDraft';
 
 let values: Map<string, string>;
 let failKey: string | null;
@@ -21,9 +22,11 @@ beforeEach(() => {
 
 test('clearing a diary stays empty after loading and exporting', () => {
   resetAllDataToDemo();
+  values.set(ENTRY_DRAFT_STORAGE_KEY, '{"draft":true}');
   clearAllUserData();
   assert.deepEqual(loadEntries(), []);
   assert.deepEqual(loadMedications(), []);
+  assert.equal(values.has(ENTRY_DRAFT_STORAGE_KEY), false);
   const backup = JSON.parse(exportDataAsJSON());
   assert.deepEqual(backup.entries, []);
   assert.deepEqual(backup.medications, []);

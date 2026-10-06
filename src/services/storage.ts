@@ -2,6 +2,7 @@ import { impulseLabel } from './observations';
 import { localDate } from './dates';
 import { validateEntries, validateMedications, validateProfile } from './validation';
 import { AfetivoEntry, Medication, UserProfile, PatientProfile } from '../types/mood';
+import { ENTRY_DRAFT_STORAGE_KEY } from './entryDraft';
 
 export const DATA_CHANGED_EVENT = 'afetivo-data-changed';
 function dataChanged() { if (typeof window !== 'undefined') window.dispatchEvent(new Event(DATA_CHANGED_EVENT)); }
@@ -617,6 +618,7 @@ export function resetAllDataToDemo(): void {
     [ENTRIES_STORAGE_KEY]: JSON.stringify(generateInitialSeedEntries()),
     [MEDICATIONS_STORAGE_KEY]: JSON.stringify(INITIAL_MEDICATIONS),
     [OLD_ENTRIES_STORAGE_KEY]: null, [OLD_MEDICATIONS_STORAGE_KEY]: null,
+    [ENTRY_DRAFT_STORAGE_KEY]: null,
   });
 }
 
@@ -626,6 +628,7 @@ export function clearAllUserData(): void {
     [ENTRIES_STORAGE_KEY]: '[]', [MEDICATIONS_STORAGE_KEY]: '[]',
     [OLD_ENTRIES_STORAGE_KEY]: null, [OLD_MEDICATIONS_STORAGE_KEY]: null,
     [USER_PROFILE_KEY]: null, [OLD_PATIENT_PROFILE_KEY]: null,
+    [ENTRY_DRAFT_STORAGE_KEY]: null,
   });
 }
 

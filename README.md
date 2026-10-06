@@ -67,6 +67,23 @@ O sistema foi construído para:
 Os dados demonstrativos são identificados como fictícios e ficam fora das
 análises e dos relatórios pessoais.
 
+### Registro rápido e rascunho local
+
+O novo registro começa apenas com humor, ativação, data e horário. As demais
+seções aparecem somente ao escolher **Adicionar mais detalhes**. Nenhuma
+resposta é obrigatória.
+
+Enquanto um novo registro está aberto, alterações são guardadas localmente na
+chave `afetivo_entry_draft_v1`, após uma breve pausa. Fechar o modal preserva o
+rascunho, inclusive quando isso acontece antes dessa pausa. Ao abrir **Novo
+Registro** novamente, o conteúdo e o modo rápido/detalhado são restaurados.
+
+O rascunho é removido depois de salvar o registro, ao escolher **Descartar
+rascunho**, ao limpar todos os dados ou ao restaurar a demonstração. Edições de
+registros existentes não usam nem substituem esse rascunho.
+O rascunho não é enviado para serviços externos nem incluído nos backups antes
+de virar um registro salvo.
+
 ## Adaptação para TDAH
 
 A adaptação se concentra na experiência de registro, não no tratamento do TDAH.

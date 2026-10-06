@@ -127,6 +127,11 @@ export default function App() {
     }
   };
 
+  const openNewEntry = () => {
+    setEditingEntry(null);
+    setIsLoggerOpen(true);
+  };
+
   const realEntries = entries.filter((e) => !e.isDemo);
   const totalDays = new Set(realEntries.map((e) => e.date)).size;
 
@@ -219,10 +224,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => {
-                setEditingEntry(null);
-                setIsLoggerOpen(true);
-              }}
+              onClick={openNewEntry}
               className="px-3.5 py-1.5 text-xs font-medium text-white bg-teal-800 hover:bg-teal-900 dark:bg-teal-700 dark:hover:bg-teal-600 rounded-lg shadow-xs transition-colors whitespace-nowrap flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -334,6 +336,24 @@ export default function App() {
               </div>
             </div>
 
+            {!realEntries.length && (
+              <section className="rounded-2xl border border-teal-100 bg-teal-50/70 p-5 dark:border-teal-900 dark:bg-teal-950/40">
+                <h2 className="font-semibold text-stone-900 dark:text-stone-100">
+                  Nada registrado ainda.
+                </h2>
+                <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+                  Quer fazer um check-in rápido? Só data e horário já bastam.
+                </p>
+                <button
+                  onClick={openNewEntry}
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-teal-800 px-4 py-2 text-sm font-medium text-white dark:bg-teal-700"
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  Fazer check-in rápido
+                </button>
+              </section>
+            )}
+
             {/* The Visual Chart */}
             <AfetivogramaChart
               entries={entries}
@@ -425,6 +445,7 @@ export default function App() {
         {activeTab === 'feed' && (
           <JournalFeed
             entries={entries}
+            onNewEntry={openNewEntry}
             onEditEntry={(entry) => {
               setEditingEntry(entry);
               setIsLoggerOpen(true);

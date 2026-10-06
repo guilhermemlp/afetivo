@@ -243,6 +243,112 @@ test('new records are blank and opening optional sections does not create answer
   assert.deepEqual(saved.observedSections, []);
 });
 
+test('automatic draft survives closing, restores quick mode and clears after discard or save', async () => {
+  await seed('clear');
+  await page
+    .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Agradável', exact: true }).click();
+  assert.equal(
+    await page.evaluate(() => localStorage.getItem('afetivo_entry_draft_v1')),
+    null,
+  );
+  await page
+    .getByRole('button', { name: 'Adicionar mais detalhes', exact: true })
+    .click();
+  await page.getByText('Notas livres', { exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Notas livres', exact: true })
+    .fill('Uma ideia que quero retomar.');
+  await page
+    .getByRole('status')
+    .filter({ hasText: 'Rascunho salvo neste dispositivo.' })
+    .waitFor();
+  await page.getByRole('button', { name: 'Fechar registro' }).click();
+
+  const stored = await data('afetivo_entry_draft_v1');
+  assert.equal(stored.version, 1);
+  assert.equal(stored.entry.journalNotes, 'Uma ideia que quero retomar.');
+  assert.equal(stored.showDetails, true);
+
+  await page
+    .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  await page
+    .getByRole('status')
+    .filter({ hasText: 'Rascunho recuperado neste dispositivo.' })
+    .waitFor();
+  assert.equal(await page.locator('details').count(), 7);
+  assert.equal(
+    await page
+      .getByRole('button', { name: 'Agradável', exact: true })
+      .getAttribute('aria-pressed'),
+    'true',
+  );
+  await page.getByText('Notas livres', { exact: true }).click();
+  assert.equal(
+    await page
+      .getByRole('textbox', { name: 'Notas livres', exact: true })
+      .inputValue(),
+    'Uma ideia que quero retomar.',
+  );
+  await page
+    .getByRole('button', { name: 'Descartar rascunho', exact: true })
+    .click();
+  await approve();
+  assert.equal(await data('afetivo_entry_draft_v1'), null);
+  assert.equal(await page.locator('details').count(), 0);
+
+  await page
+    .getByRole('button', { name: 'Desagradável', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Fechar registro' }).click();
+  await page
+    .getByRole('button', { name: 'Fechar registro' })
+    .waitFor({ state: 'hidden' });
+  assert.equal(
+    (await data('afetivo_entry_draft_v1')).entry.moodScore,
+    -2,
+  );
+  await page
+    .getByRole('button', { name: 'Novo Registro', exact: true })
+    .click();
+  await page
+    .getByRole('status')
+    .filter({ hasText: 'Rascunho recuperado neste dispositivo.' })
+    .waitFor();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Fechar registro' })
+    .waitFor({ state: 'hidden' });
+  assert.equal(await data('afetivo_entry_draft_v1'), null);
+});
+
+test('dashboard and journal empty states offer a low-friction check-in', async () => {
+  await seed('clear');
+  await page.getByText('Nada registrado ainda.', { exact: true }).waitFor();
+  assert.equal(
+    await page
+      .getByRole('button', { name: 'Fazer check-in rápido', exact: true })
+      .isVisible(),
+    true,
+  );
+  await page
+    .getByRole('button', { name: 'Diário & Histórico', exact: true })
+    .click();
+  await page
+    .getByText('Quer fazer um check-in rápido? Você decide quanto responder.', {
+      exact: true,
+    })
+    .waitFor();
+  await page
+    .getByRole('button', { name: 'Fazer check-in rápido', exact: true })
+    .click();
+  await page
+    .getByRole('dialog', { name: 'Como está este momento?' })
+    .waitFor();
+});
+
 test('backups download, reject invalid imports and restore valid data', async () => {
   await page
     .getByRole('button', { name: 'Backup & Exportar', exact: true })

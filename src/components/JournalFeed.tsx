@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Edit3, Trash2 } from "lucide-react";
+import { Edit3, Plus, Trash2 } from "lucide-react";
 import { AfetivoEntry } from "../types/mood";
 import {
   moodLabel,
@@ -8,11 +8,13 @@ import {
 } from "../services/observations";
 interface Props {
   entries: AfetivoEntry[];
+  onNewEntry: () => void;
   onEditEntry: (entry: AfetivoEntry) => void;
   onDeleteEntry: (id: string) => void;
 }
 export const JournalFeed: React.FC<Props> = ({
   entries,
+  onNewEntry,
   onEditEntry,
   onDeleteEntry,
 }) => {
@@ -205,12 +207,29 @@ export const JournalFeed: React.FC<Props> = ({
           )}
         </article>
       ))}
-      {!filtered.length && (
-        <p className="p-6 bg-white dark:bg-stone-900 rounded-xl">
-          Nenhum registro neste filtro. Você pode começar ou retomar quando
-          quiser.
-        </p>
-      )}
+      {!filtered.length &&
+        (entries.length ? (
+          <div className="rounded-xl bg-white p-6 dark:bg-stone-900">
+            <p className="font-medium">Nada encontrado neste filtro.</p>
+            <p className="mt-1 text-sm text-stone-500">
+              Você pode ajustar a busca ou voltar quando quiser.
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-teal-100 bg-teal-50/70 p-6 dark:border-teal-900 dark:bg-teal-950/40">
+            <p className="font-medium">Nada registrado ainda.</p>
+            <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
+              Quer fazer um check-in rápido? Você decide quanto responder.
+            </p>
+            <button
+              onClick={onNewEntry}
+              className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-teal-800 px-4 py-2 text-sm font-medium text-white dark:bg-teal-700"
+            >
+              <Plus size={16} aria-hidden="true" />
+              Fazer check-in rápido
+            </button>
+          </div>
+        ))}
     </section>
   );
 };

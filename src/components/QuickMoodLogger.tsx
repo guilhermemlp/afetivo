@@ -16,6 +16,12 @@ import {
   moodLabel,
 } from '../services/observations';
 import { localDate, isValidDate } from '../services/dates';
+import {
+  clearEntryDraft,
+  loadEntryDraft,
+  saveEntryDraft,
+} from '../services/entryDraft';
+import { useConfirmation } from './ConfirmationProvider';
 
 interface Props {
   medications: Medication[];
@@ -64,9 +70,15 @@ export const QuickMoodLogger: React.FC<Props> = ({
   onSave,
   onClose,
 }) => {
+  const confirm = useConfirmation();
   const modalRef = useModalFocus(onClose);
+  const restoredDraft = useRef(
+    initialEntry ? null : loadEntryDraft(),
+  ).current;
   const [entry, setEntry] = useState<AfetivoEntry>(() =>
-    initialEntry ? { ...initialEntry } : blankEntry(),
+    initialEntry
+      ? { ...initialEntry }
+      : restoredDraft?.entry ?? blankEntry(),
   );
   const [emotionText, setEmotionText] = useState(entry.emotions.join(', '));
   const [supportText, setSupportText] = useState(
@@ -75,25 +87,73 @@ export const QuickMoodLogger: React.FC<Props> = ({
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [showDetails, setShowDetails] = useState(Boolean(initialEntry));
+  const [showDetails, setShowDetails] = useState(
+    Boolean(initialEntry) || Boolean(restoredDraft?.showDetails),
+  );
+  const [draftRecovered, setDraftRecovered] = useState(
+    Boolean(restoredDraft),
+  );
+  const [hasDraft, setHasDraft] = useState(Boolean(restoredDraft));
+  const [draftMessage, setDraftMessage] = useState('');
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftDirty = useRef(false);
+  const finalSaved = useRef(false);
+  const latestDraft = useRef({ entry, showDetails });
+  latestDraft.current = { entry, showDetails };
+
   useEffect(
     () => () => {
       if (closeTimer.current) clearTimeout(closeTimer.current);
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      if (!initialEntry && draftDirty.current && !finalSaved.current) {
+        saveEntryDraft(
+          latestDraft.current.entry,
+          latestDraft.current.showDetails,
+        );
+      }
     },
-    [],
+    [initialEntry],
   );
-  const change = (patch: Partial<AfetivoEntry>) =>
+
+  useEffect(() => {
+    if (initialEntry || saved || !draftDirty.current) return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      const stored = saveEntryDraft(entry, showDetails);
+      if (stored) setHasDraft(true);
+      setDraftMessage(
+        stored
+          ? 'Rascunho salvo neste dispositivo.'
+          : 'Não foi possível salvar o rascunho neste dispositivo.',
+      );
+    }, 450);
+    return () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+    };
+  }, [entry, initialEntry, saved, showDetails]);
+
+  const markDraftChanged = () => {
+    if (initialEntry) return;
+    draftDirty.current = true;
+    setDraftRecovered(false);
+    setDraftMessage('');
+  };
+  const change = (patch: Partial<AfetivoEntry>) => {
+    markDraftChanged();
     setEntry((e) => ({ ...e, ...patch }));
+  };
   const observed = (
     section: NonNullable<AfetivoEntry['observedSections']>[number],
     patch: Partial<AfetivoEntry>,
-  ) =>
+  ) => {
+    markDraftChanged();
     setEntry((e) => ({
       ...e,
       ...patch,
       observedSections: [...new Set([...(e.observedSections ?? []), section])],
     }));
+  };
   const toggle = (
     key: 'contexts' | 'emotions' | 'protectiveFactors',
     value: string,
@@ -118,6 +178,14 @@ export const QuickMoodLogger: React.FC<Props> = ({
     try {
       const didSave = await onSave({ ...entry, moodLabel: moodLabel(entry) });
       if (didSave === false) throw new Error('Não foi possível salvar.');
+      if (!initialEntry) {
+        finalSaved.current = true;
+        draftDirty.current = false;
+        if (draftTimer.current) clearTimeout(draftTimer.current);
+        clearEntryDraft();
+        setHasDraft(false);
+        setDraftMessage('');
+      }
       setSaving(false);
       setSaved(true);
       closeTimer.current = setTimeout(onClose, 650);
@@ -125,6 +193,27 @@ export const QuickMoodLogger: React.FC<Props> = ({
       setError(e instanceof Error ? e.message : 'Não foi possível salvar.');
       setSaving(false);
     }
+  };
+  const discardDraft = async () => {
+    if (
+      !(await confirm(
+        'Descartar este rascunho? O que ainda não foi salvo como registro será removido.',
+      ))
+    )
+      return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftDirty.current = false;
+    clearEntryDraft();
+    const freshEntry = blankEntry();
+    setEntry(freshEntry);
+    setEmotionText('');
+    setSupportText('');
+    setShowDetails(false);
+    setDraftRecovered(false);
+    setHasDraft(false);
+    setDraftMessage(
+      'Rascunho descartado. Você pode começar de novo quando quiser.',
+    );
   };
   const impulse = (id: string, patch: Partial<ImpulsiveBehavior>) =>
     observed('impulses', {
@@ -181,6 +270,15 @@ export const QuickMoodLogger: React.FC<Props> = ({
             só o que fizer sentido. Não é preciso escrever nem manter uma
             sequência de dias.
           </p>
+          {draftRecovered && (
+            <p
+              role="status"
+              className="rounded-lg bg-teal-50 px-3 py-2 text-sm text-teal-900 dark:bg-teal-950 dark:text-teal-200"
+            >
+              Rascunho recuperado neste dispositivo. Continue de onde parou ou
+              salve como está.
+            </p>
+          )}
           {entry.isDemo && (
             <p className="text-sm text-amber-700">
               Este é um exemplo fictício. A edição continua marcada como
@@ -281,7 +379,10 @@ export const QuickMoodLogger: React.FC<Props> = ({
               className="w-full rounded-lg border border-stone-300 px-4 py-3 text-teal-800 dark:border-stone-700 dark:text-teal-300"
               aria-expanded="false"
               aria-controls="optional-entry-details"
-              onClick={() => setShowDetails(true)}
+              onClick={() => {
+                markDraftChanged();
+                setShowDetails(true);
+              }}
             >
               Adicionar mais detalhes
             </button>
@@ -847,7 +948,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
           )}
         </div>
         <footer className="border-t p-4 flex flex-wrap justify-between items-center gap-3">
-          <div className="min-h-6" aria-live="polite">
+          <div className="min-h-6 text-sm" aria-live="polite">
             {saved && (
               <p
                 role="status"
@@ -857,14 +958,30 @@ export const QuickMoodLogger: React.FC<Props> = ({
                 Salvo neste dispositivo.
               </p>
             )}
+            {!saved && draftMessage && (
+              <p
+                role="status"
+                className="text-stone-600 dark:text-stone-400"
+              >
+                {draftMessage}
+              </p>
+            )}
           </div>
-          <div className="flex gap-2 ml-auto">
+          <div className="flex flex-wrap justify-end gap-2 ml-auto">
+            {hasDraft && !initialEntry && !saved && (
+              <button
+                className="rounded-lg px-3 py-2 text-sm text-rose-700 dark:text-rose-300"
+                onClick={discardDraft}
+              >
+                Descartar rascunho
+              </button>
+            )}
             <button
               className={button}
               onClick={onClose}
               disabled={saving || saved}
             >
-              Cancelar
+              Fechar
             </button>
             <button
               disabled={saving || saved}
