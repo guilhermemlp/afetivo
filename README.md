@@ -131,6 +131,8 @@ A adaptação se concentra na experiência de registro, não no tratamento do TD
 As principais decisões de interface são:
 
 - duas perguntas iniciais curtas;
+- alvos de toque de pelo menos 44 × 44 px no registro rápido;
+- indicação “Pronto para salvar” sem exigir respostas;
 - detalhes organizados em seções opcionais;
 - possibilidade de salvar sem preencher todos os campos;
 - ausência de valores clínicos presumidos;

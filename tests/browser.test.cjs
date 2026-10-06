@@ -458,6 +458,52 @@ test('mobile navigation, local analysis and guide buttons work', async () => {
     .click();
 });
 
+test('quick logger remains concise with 44px touch targets from 320 to 390px', async () => {
+  await seed('clear');
+  for (const viewport of [
+    { width: 320, height: 568 },
+    { width: 360, height: 640 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page
+      .getByRole('button', { name: 'Novo Registro', exact: true })
+      .click();
+    const dialog = page.getByRole('dialog', {
+      name: 'Como está este momento?',
+    });
+    await dialog.waitFor();
+    await page.getByText('Pronto para salvar', { exact: true }).waitFor();
+    assert.equal(await page.locator('details').count(), 0);
+    assert.equal(
+      await page.getByText('Duas perguntas para começar.', { exact: false }).count(),
+      0,
+    );
+    assert.equal(
+      await dialog.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+      true,
+    );
+
+    for (const target of [
+      page.getByRole('button', { name: 'Agradável', exact: true }),
+      page.getByRole('button', { name: 'Ativação 1', exact: true }),
+      page.getByRole('button', { name: 'Pular humor', exact: true }),
+      page.getByRole('button', { name: 'Pular ativação', exact: true }),
+      page.getByRole('button', { name: 'Salvar', exact: true }),
+    ]) {
+      const box = await target.boundingBox();
+      assert.ok(box);
+      assert.ok(box.width >= 44, `${viewport.width}px: largura menor que 44px`);
+      assert.ok(box.height >= 44, `${viewport.width}px: altura menor que 44px`);
+      assert.ok(box.x >= 0 && box.x + box.width <= viewport.width);
+    }
+    await page.getByRole('button', { name: 'Fechar registro' }).click();
+    await dialog.waitFor({ state: 'hidden' });
+  }
+});
+
 test('multiple moments in one day preserve both mood and activation separately', async () => {
   await seed('clear');
   for (const [mood, activation] of [

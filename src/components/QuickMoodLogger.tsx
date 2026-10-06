@@ -30,10 +30,10 @@ interface Props {
   onClose: () => void;
 }
 const field =
-  'w-full border border-stone-300 dark:border-stone-700 rounded-lg p-2 bg-white dark:bg-stone-900';
+  'w-full min-w-0 min-h-11 border border-stone-300 dark:border-stone-700 rounded-lg p-2 bg-white dark:bg-stone-900';
 const button =
   'border border-stone-300 dark:border-stone-700 rounded-lg px-3 py-2 cursor-pointer aria-pressed:bg-teal-100 dark:aria-pressed:bg-teal-900';
-const quickChoiceButton = `${button} min-h-12 w-full px-3 py-3 text-sm`;
+const quickChoiceButton = `${button} min-h-12 min-w-11 w-full touch-manipulation px-2 py-2 text-sm font-medium leading-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 aria-pressed:border-teal-700 aria-pressed:ring-2 aria-pressed:ring-teal-600/30`;
 const blankEntry = (): AfetivoEntry => ({
   id: crypto.randomUUID(),
   schemaVersion: 3,
@@ -243,33 +243,28 @@ export const QuickMoodLogger: React.FC<Props> = ({
     ...historicalMeds,
   ];
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-3">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-2 sm:p-3">
       <section
         ref={modalRef}
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="logger-title"
-        className="bg-white dark:bg-stone-900 rounded-2xl w-full max-w-2xl max-h-[92vh] flex flex-col"
+        className="bg-white dark:bg-stone-900 rounded-2xl w-full max-w-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[92vh] flex flex-col overflow-hidden"
       >
-        <header className="flex justify-between items-center border-b p-4">
+        <header className="flex justify-between items-center border-b px-3 py-2 sm:p-4">
           <h2 id="logger-title" className="font-semibold text-lg">
             {initialEntry ? 'Editar registro' : 'Como está este momento?'}
           </h2>
           <button
             aria-label="Fechar registro"
             onClick={onClose}
-            className={button}
+            className={`${button} min-h-11 min-w-11 flex items-center justify-center`}
           >
             <X size={18} />
           </button>
         </header>
-        <div className="overflow-y-auto p-4 space-y-5">
-          <p className="text-sm text-stone-600 dark:text-stone-400">
-            Duas perguntas para começar. Você pode pular qualquer uma e salvar
-            só o que fizer sentido. Não é preciso escrever nem manter uma
-            sequência de dias.
-          </p>
+        <div className="overflow-y-auto p-3 sm:p-4 space-y-4 sm:space-y-5">
           {draftRecovered && (
             <p
               role="status"
@@ -287,9 +282,8 @@ export const QuickMoodLogger: React.FC<Props> = ({
           )}
           <fieldset className="space-y-2">
             <legend className="font-semibold">1. Como você se sente?</legend>
-            <p className="text-sm">
-              Agradável ou desagradável — independente de estar calmo ou
-              acelerado.
+            <p className="text-xs text-stone-500">
+              De desagradável a agradável.
             </p>
             {entry.moodScale !== 'valence' && (
               <p className="text-sm text-amber-700">
@@ -312,24 +306,20 @@ export const QuickMoodLogger: React.FC<Props> = ({
               ))}
               <button
                 className={quickChoiceButton}
+                aria-label="Pular humor"
                 aria-pressed={entry.moodScore == null}
                 onClick={() =>
                   change({ moodScore: null, moodScale: 'valence' })
                 }
               >
-                Não sei / pular humor
+                Pular
               </button>
             </div>
           </fieldset>
           <fieldset className="space-y-2">
-            <legend className="font-semibold">
-              2. Quanta ativação você percebe?
-            </legend>
-            <p className="text-sm">
-              De pouco ativado a muito ativado ou acelerado. Ativação alta pode
-              ser agradável ou desagradável.
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <legend className="font-semibold">2. Quanto você está ativado?</legend>
+            <p className="text-xs text-stone-500">Pouco ↔ muito.</p>
+            <div className="grid grid-cols-5 gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button
                   key={n}
@@ -339,20 +329,22 @@ export const QuickMoodLogger: React.FC<Props> = ({
                   onClick={() => change({ activationLevel: n })}
                 >
                   {n}
-                  {n === 1 ? ' · Pouca' : n === 5 ? ' · Muita' : ''}
                 </button>
               ))}
+            </div>
+            <div>
               <button
                 className={quickChoiceButton}
+                aria-label="Pular ativação"
                 aria-pressed={entry.activationLevel == null}
                 onClick={() => change({ activationLevel: null })}
               >
-                Não sei / pular ativação
+                Pular
               </button>
             </div>
           </fieldset>
           <div className="grid grid-cols-2 gap-3">
-            <label>
+            <label className="min-w-0 text-sm">
               Data
               <input
                 aria-label="Data"
@@ -362,7 +354,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
                 onChange={(e) => change({ date: e.target.value })}
               />
             </label>
-            <label>
+            <label className="min-w-0 text-sm">
               Horário
               <input
                 aria-label="Horário"
@@ -376,7 +368,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
           {!showDetails && (
             <button
               type="button"
-              className="w-full rounded-lg border border-stone-300 px-4 py-3 text-teal-800 dark:border-stone-700 dark:text-teal-300"
+              className="w-full min-h-11 touch-manipulation rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-teal-800 dark:border-stone-700 dark:text-teal-300"
               aria-expanded="false"
               aria-controls="optional-entry-details"
               onClick={() => {
@@ -390,8 +382,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
           {showDetails && (
             <div id="optional-entry-details" className="space-y-3">
               <p className="text-sm text-stone-600 dark:text-stone-400">
-                Tudo abaixo é opcional. Abrir uma seção não registra uma
-                resposta.
+                Tudo aqui é opcional.
               </p>
               <label className="block">
                 Tipo de registro
@@ -936,19 +927,14 @@ export const QuickMoodLogger: React.FC<Props> = ({
               </details>
             </div>
           )}
-          {!showDetails && (
-            <p className="text-xs text-stone-500">
-              Só data e horário já formam um registro. Você pode editar depois.
-            </p>
-          )}
           {error && (
             <p role="alert" className="text-red-700">
               {error}
             </p>
           )}
         </div>
-        <footer className="border-t p-4 flex flex-wrap justify-between items-center gap-3">
-          <div className="min-h-6 text-sm" aria-live="polite">
+        <footer className="shrink-0 border-t p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2 sm:gap-3">
+          <div className="min-h-5 text-xs sm:text-sm" aria-live="polite">
             {saved && (
               <p
                 role="status"
@@ -966,18 +952,24 @@ export const QuickMoodLogger: React.FC<Props> = ({
                 {draftMessage}
               </p>
             )}
+            {!saved && !draftMessage && (
+              <p className="flex items-center gap-1.5 font-medium text-teal-800 dark:text-teal-300">
+                <Check size={16} aria-hidden="true" />
+                Pronto para salvar
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap justify-end gap-2 ml-auto">
             {hasDraft && !initialEntry && !saved && (
               <button
-                className="rounded-lg px-3 py-2 text-sm text-rose-700 dark:text-rose-300"
+                className="min-h-11 rounded-lg px-2 py-2 text-xs text-rose-700 dark:text-rose-300 sm:px-3 sm:text-sm"
                 onClick={discardDraft}
               >
                 Descartar rascunho
               </button>
             )}
             <button
-              className={button}
+              className={`${button} min-h-11`}
               onClick={onClose}
               disabled={saving || saved}
             >
@@ -985,7 +977,7 @@ export const QuickMoodLogger: React.FC<Props> = ({
             </button>
             <button
               disabled={saving || saved}
-              className="bg-teal-800 text-white rounded-lg min-h-11 px-6 py-2 disabled:opacity-60"
+              className="bg-teal-800 text-white rounded-lg min-h-11 px-5 sm:px-6 py-2 font-semibold shadow-sm disabled:opacity-60"
               onClick={save}
             >
               {saving ? 'Salvando…' : saved ? 'Salvo' : 'Salvar'}
