@@ -141,6 +141,26 @@ describe('PatternsPage', () => {
     expect(screen.getByRole('link', { name: 'Registrar um momento' })).toHaveAttribute('href', '/');
   });
 
+  it('mostra sono, impulsos e correlações do período', async () => {
+    setupStore({ entries: seedEntries(), medicationEvents: seedIntake() });
+    renderApp(<PatternsPage />);
+    await screen.findByLabelText('Resumo do período');
+
+    expect(screen.getByRole('heading', { name: 'Sono ao longo do período' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Impulsos ao longo do período' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Ver valores \(1 dias com resposta\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Ver valores \(2 dias com registro\)/)).toBeInTheDocument();
+
+    expect(screen.getByRole('heading', { name: 'Correlações do período' })).toBeInTheDocument();
+    expect(screen.getByText('Humor × ativação')).toBeInTheDocument();
+    expect(screen.getByText('Humor × sono')).toBeInTheDocument();
+    expect(screen.getByText('Humor × impulsos')).toBeInTheDocument();
+    expect(screen.getAllByText(/r = — · n = \d+ dias/)).toHaveLength(3);
+    expect(screen.getAllByText(/Dados insuficientes/)).toHaveLength(3);
+  });
+
   it('gera a análise local e avisa que a IA não está configurada', async () => {
     const user = userEvent.setup();
     setupStore({ entries: seedEntries() });

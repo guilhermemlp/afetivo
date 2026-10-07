@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { dailyIntakes, dailySeries, monthMatrix, periodStats, topTags } from '@/core/analysis';
+import {
+  dailyIntakes,
+  dailySeries,
+  monthMatrix,
+  periodStats,
+  simpleCorrelations,
+  topTags,
+} from '@/core/analysis';
 import { addDays, dateRange, localDate } from '@/core/dates';
-import { createBlankEntry, impulseSchema, withUpdates } from '@/core/entry';
+import { createBlankEntry, impulseSchema, withUpdates, type Entry } from '@/core/entry';
 import { createMedicationEvent } from '@/core/medication';
 
 describe('dailySeries', () => {
@@ -58,6 +65,30 @@ describe('dailySeries', () => {
     expect(points[0]?.date).toBe('2026-01-05');
     expect(points[points.length - 1]?.date).toBe('2026-01-08');
     expect(points).toHaveLength(4);
+  });
+
+  it('calcula sono médio e contagem de impulsos com ausência como null', () => {
+    const now = new Date(2026, 9, 10, 12, 0);
+    const aBase = createBlankEntry(new Date(2026, 9, 9, 10, 0));
+    const a = withUpdates(aBase, { moodScore: 1, metrics: { ...aBase.metrics, sleepHours: 8 } }, 1);
+    const b = withUpdates(
+      createBlankEntry(new Date(2026, 9, 9, 20, 0)),
+      { impulses: [impulseSchema.parse({ id: 'i1', type: 'impulso' })] },
+      2,
+    );
+    const cBase = createBlankEntry(new Date(2026, 9, 10, 9, 0));
+    const c = withUpdates(cBase, { metrics: { ...cBase.metrics, sleepHours: 6 } }, 3);
+
+    const points = dailySeries([a, b, c], dateRange(7, now));
+    const byDate = new Map(points.map((point) => [point.date, point]));
+
+    expect(byDate.get('2026-10-09')).toMatchObject({
+      sleepAvg: 8,
+      impulseCount: 1,
+      entryCount: 2,
+    });
+    expect(byDate.get('2026-10-10')).toMatchObject({ sleepAvg: 6, impulseCount: 0 });
+    expect(byDate.get('2026-10-08')).toMatchObject({ sleepAvg: null, impulseCount: null });
   });
 });
 
@@ -204,6 +235,86 @@ describe('dailyIntakes', () => {
     const counts = dailyIntakes([inside, outside, adjustment], range);
     expect(counts.get('2026-10-09')).toBe(1);
     expect(counts.has('2026-09-01')).toBe(false);
+  });
+});
+
+describe('simpleCorrelations', () => {
+  it('estima associação perfeita positiva com 5 dias pareados', () => {
+    const now = new Date(2026, 9, 10, 12, 0);
+    const entries: Entry[] = [];
+    for (let i = 0; i < 5; i++) {
+      const base = createBlankEntry(new Date(2026, 9, 5 + i, 10, 0));
+      entries.push(withUpdates(base, { moodScore: -3 + i, activationLevel: 1 + i }, i + 1));
+    }
+
+    const result = simpleCorrelations(entries, dateRange(7, now));
+    const pair = result.find((item) => item.key === 'mood-activation');
+
+    expect(result.map((item) => item.key)).toEqual([
+      'mood-activation',
+      'mood-sleep',
+      'mood-impulses',
+    ]);
+    expect(pair?.n).toBe(5);
+    expect(pair?.r).toBe(1);
+    expect(pair?.leitura).toContain('positiva forte');
+  });
+
+  it('descreve associação negativa sem inferir causa', () => {
+    const now = new Date(2026, 9, 10, 12, 0);
+    const entries: Entry[] = [];
+    for (let i = 0; i < 6; i++) {
+      const base = createBlankEntry(new Date(2026, 9, 4 + i, 10, 0));
+      entries.push(
+        withUpdates(
+          base,
+          { moodScore: -3 + i, metrics: { ...base.metrics, sleepHours: 10 - i } },
+          i + 1,
+        ),
+      );
+    }
+
+    const pair = simpleCorrelations(entries, dateRange(7, now)).find(
+      (item) => item.key === 'mood-sleep',
+    );
+
+    expect(pair?.n).toBe(6);
+    expect(pair?.r).toBe(-1);
+    expect(pair?.leitura).toContain('negativa forte');
+  });
+
+  it('fica null com menos de 5 dias pareados', () => {
+    const now = new Date(2026, 9, 10, 12, 0);
+    const entries: Entry[] = [];
+    for (let i = 0; i < 4; i++) {
+      const base = createBlankEntry(new Date(2026, 9, 6 + i, 10, 0));
+      entries.push(withUpdates(base, { moodScore: -2 + i, activationLevel: 1 + i }, i + 1));
+    }
+
+    const pair = simpleCorrelations(entries, dateRange(7, now)).find(
+      (item) => item.key === 'mood-activation',
+    );
+
+    expect(pair?.n).toBe(4);
+    expect(pair?.r).toBeNull();
+    expect(pair?.leitura).toContain('Dados insuficientes');
+  });
+
+  it('sem variação em uma medida, o coeficiente fica null', () => {
+    const now = new Date(2026, 9, 10, 12, 0);
+    const entries: Entry[] = [];
+    for (let i = 0; i < 6; i++) {
+      const base = createBlankEntry(new Date(2026, 9, 4 + i, 10, 0));
+      entries.push(withUpdates(base, { moodScore: -3 + i, activationLevel: 3 }, i + 1));
+    }
+
+    const pair = simpleCorrelations(entries, dateRange(7, now)).find(
+      (item) => item.key === 'mood-activation',
+    );
+
+    expect(pair?.n).toBe(6);
+    expect(pair?.r).toBeNull();
+    expect(pair?.leitura).toContain('Sem variação suficiente');
   });
 });
 

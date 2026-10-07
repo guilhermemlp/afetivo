@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { dailyIntakes, dailySeries, formatAvg, periodStats, topTags } from '@/core/analysis';
+import {
+  dailyIntakes,
+  dailySeries,
+  formatAvg,
+  periodStats,
+  simpleCorrelations,
+  topTags,
+} from '@/core/analysis';
 import { DISCLAIMER, PERIOD_OPTIONS } from '@/core/constants';
 import { dateRange } from '@/core/dates';
 import { buttonClass, Card, ChoiceButton, EmptyState, Skeleton } from '@/components/ui';
@@ -8,6 +15,7 @@ import type { AiAnalysisRequest } from '@/data/ai';
 import { useEntries, useMedicationEvents } from '@/data/hooks';
 import { Afetivograma } from './Afetivograma';
 import { AiAnalysisCard } from './AiAnalysisCard';
+import { ImpulseBarChart } from './ImpulseBarChart';
 import { MedsMoodTimeline } from './MedsMoodTimeline';
 import { MoodTrendChart } from './MoodTrendChart';
 import { TagFrequency } from './TagFrequency';
@@ -35,6 +43,7 @@ export function PatternsPage() {
   const stats = useMemo(() => periodStats(entries, events, range), [entries, events, range]);
   const tags = useMemo(() => topTags(entries, range), [entries, range]);
   const intakes = useMemo(() => dailyIntakes(events, range), [events, range]);
+  const correlations = useMemo(() => simpleCorrelations(entries, range), [entries, range]);
 
   const periodLabel = PERIOD_OPTIONS.find((option) => option.days === period)?.label ?? 'Período';
   const aiRequest = useMemo<AiAnalysisRequest>(
@@ -104,9 +113,30 @@ export function PatternsPage() {
 
           <MoodTrendChart points={points} kind="mood" />
           <MoodTrendChart points={points} kind="activation" />
+          <MoodTrendChart points={points} kind="sleep" />
+          <ImpulseBarChart points={points} />
           <Afetivograma entries={entries} />
           <MedsMoodTimeline points={points} intakes={intakes} />
           <TagFrequency tags={tags} />
+          <Card>
+            <h2 className="text-lg font-semibold">Correlações do período</h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              Comparação dia a dia entre duas medidas — descreve uma associação quando ela aparece,
+              nunca causa. Mínimo de 5 dias com os dois valores.
+            </p>
+            <ul className="mt-3 space-y-3">
+              {correlations.map((correlation) => (
+                <li key={correlation.key} className="rounded-xl border border-edge bg-panel-2 p-3">
+                  <p className="text-sm font-medium">{correlation.label}</p>
+                  <p className="mt-0.5 text-sm tabular-nums">
+                    r = {correlation.r != null ? correlation.r.toFixed(2).replace('.', ',') : '—'} ·
+                    n = {correlation.n} dias
+                  </p>
+                  <p className="mt-0.5 text-sm text-ink-muted">{correlation.leitura}</p>
+                </li>
+              ))}
+            </ul>
+          </Card>
           <AiAnalysisCard key={String(period)} request={aiRequest} />
 
           <Card>

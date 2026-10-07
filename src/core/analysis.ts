@@ -51,6 +51,10 @@ export interface DayPoint {
   /** Média do humor nos registros **que responderam**; `null` = ninguém respondeu. */
   moodAvg: number | null;
   activationAvg: number | null;
+  /** Média de sono (horas) entre quem respondeu; `null` = ninguém respondeu. */
+  sleepAvg: number | null;
+  /** Total de impulsos registrados no dia; `null` = dia sem registro, `0` = registrado sem impulso. */
+  impulseCount: number | null;
   /** Total de registros do dia (inclui os sem resposta de humor). */
   entryCount: number;
   /** Registros com humor respondido no dia. */
@@ -74,14 +78,20 @@ export function dailySeries(entries: Entry[], range: DateRange): DayPoint[] {
     const dayEntries = byDate.get(date) ?? [];
     const moods: number[] = [];
     const activations: number[] = [];
+    const sleeps: number[] = [];
+    let impulses = 0;
     for (const entry of dayEntries) {
       if (entry.moodScore != null) moods.push(entry.moodScore);
       if (entry.activationLevel != null) activations.push(entry.activationLevel);
+      if (entry.metrics.sleepHours != null) sleeps.push(entry.metrics.sleepHours);
+      impulses += entry.impulses.length;
     }
     points.push({
       date,
       moodAvg: mean(moods),
       activationAvg: mean(activations),
+      sleepAvg: mean(sleeps),
+      impulseCount: dayEntries.length > 0 ? impulses : null,
       entryCount: dayEntries.length,
       moodResponses: moods.length,
     });
@@ -218,4 +228,102 @@ export function dailyIntakes(
     counts.set(event.date, (counts.get(event.date) ?? 0) + 1);
   }
   return counts;
+}
+
+export type CorrelationPair = 'mood-activation' | 'mood-sleep' | 'mood-impulses';
+
+export interface Correlation {
+  key: CorrelationPair;
+  label: string;
+  /** Pearson arredondado em 2 casas; `null` = dias insuficientes ou sem variação. */
+  r: number | null;
+  /** Dias onde **ambos** do par têm valor. */
+  n: number;
+  /** Leitura descritiva — nunca afirma causa ou efeito. */
+  leitura: string;
+}
+
+/** Mínimo de dias pareados para estimar um coeficiente. */
+const MIN_PAIR_DAYS = 5;
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function pearson(pairs: Array<[number, number]>): number | null {
+  const n = pairs.length;
+  if (n < 2) return null;
+  const meanX = pairs.reduce((sum, [x]) => sum + x, 0) / n;
+  const meanY = pairs.reduce((sum, [, y]) => sum + y, 0) / n;
+  let numerator = 0;
+  let sumDx2 = 0;
+  let sumDy2 = 0;
+  for (const [x, y] of pairs) {
+    const dx = x - meanX;
+    const dy = y - meanY;
+    numerator += dx * dy;
+    sumDx2 += dx * dx;
+    sumDy2 += dy * dy;
+  }
+  if (sumDx2 === 0 || sumDy2 === 0) return null;
+  return numerator / Math.sqrt(sumDx2 * sumDy2);
+}
+
+function correlationLeitura(r: number | null, n: number): string {
+  if (r == null) {
+    return n < MIN_PAIR_DAYS
+      ? `Dados insuficientes — ${n} dia(s) com os dois valores (mínimo ${MIN_PAIR_DAYS}).`
+      : 'Sem variação suficiente nos dados para estimar.';
+  }
+  const magnitude = Math.abs(r);
+  const forca = magnitude < 0.3 ? 'fraca' : magnitude < 0.6 ? 'moderada' : 'forte';
+  const direcao = r >= 0 ? 'positiva' : 'negativa';
+  return `Associação ${direcao} ${forca} (r = ${round2(r).toFixed(2).replace('.', ',')}, n = ${n} dias).`;
+}
+
+const CORRELATION_PAIRS: Array<{
+  key: CorrelationPair;
+  label: string;
+  x: (point: DayPoint) => number | null;
+  y: (point: DayPoint) => number | null;
+}> = [
+  {
+    key: 'mood-activation',
+    label: 'Humor × ativação',
+    x: (p) => p.moodAvg,
+    y: (p) => p.activationAvg,
+  },
+  { key: 'mood-sleep', label: 'Humor × sono', x: (p) => p.moodAvg, y: (p) => p.sleepAvg },
+  {
+    key: 'mood-impulses',
+    label: 'Humor × impulsos',
+    x: (p) => p.moodAvg,
+    y: (p) => p.impulseCount,
+  },
+];
+
+/**
+ * Correlações simples de Pearson por dia na janela: só entra o par quando
+ * **ambos** respondidos no mesmo dia; abaixo de `MIN_PAIR_DAYS` dias ou sem
+ * variação, `r` fica `null`. Descritivo — não infere causa, tratamento ou dose.
+ */
+export function simpleCorrelations(entries: Entry[], range: DateRange): Correlation[] {
+  const points = dailySeries(entries, range);
+  return CORRELATION_PAIRS.map(({ key, label, x, y }) => {
+    const pairs: Array<[number, number]> = [];
+    for (const point of points) {
+      const a = x(point);
+      const b = y(point);
+      if (a != null && b != null) pairs.push([a, b]);
+    }
+    const n = pairs.length;
+    const r = n >= MIN_PAIR_DAYS ? pearson(pairs) : null;
+    return {
+      key,
+      label,
+      r: r == null ? null : round2(r),
+      n,
+      leitura: correlationLeitura(r, n),
+    };
+  });
 }

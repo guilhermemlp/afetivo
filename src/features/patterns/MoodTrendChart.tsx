@@ -8,15 +8,16 @@ import {
   YAxis,
 } from 'recharts';
 import type { DayPoint } from '@/core/analysis';
+import { formatAvg } from '@/core/analysis';
 import { formatDateBR } from '@/core/dates';
 import { Card } from '@/components/ui';
 
-type TrendKind = 'mood' | 'activation';
+type TrendKind = 'mood' | 'activation' | 'sleep';
 
 interface TrendConfig {
   title: string;
   description: string;
-  dataKey: 'moodAvg' | 'activationAvg';
+  dataKey: 'moodAvg' | 'activationAvg' | 'sleepAvg';
   label: string;
   domain: [number, number];
   ticks: number[];
@@ -46,6 +47,17 @@ const CONFIG: Record<TrendKind, TrendConfig> = {
     ticks: [1, 2, 3, 4, 5],
     stroke: '#7c3aed',
     responsesLabel: 'Ativação média',
+  },
+  sleep: {
+    title: 'Sono ao longo do período',
+    description:
+      'Média diária de horas de sono entre quem respondeu. Dia sem resposta fica em branco — a linha nunca infere valores entre lacunas.',
+    dataKey: 'sleepAvg',
+    label: 'Sono médio (h)',
+    domain: [0, 14],
+    ticks: [0, 2, 4, 6, 8, 10, 12, 14],
+    stroke: '#0284c7',
+    responsesLabel: 'Sono médio (h)',
   },
 };
 
@@ -98,7 +110,10 @@ export function MoodTrendChart({ points, kind }: MoodTrendChartProps) {
                 />
                 <Tooltip
                   labelFormatter={(label) => formatDateBR(String(label))}
-                  formatter={(value) => [String(value ?? '—'), config.label]}
+                  formatter={(value) => [
+                    formatAvg(typeof value === 'number' ? value : null),
+                    config.label,
+                  ]}
                 />
                 <Line
                   type="monotone"
@@ -138,7 +153,7 @@ export function MoodTrendChart({ points, kind }: MoodTrendChartProps) {
                     <tr key={point.date} className="border-t border-edge">
                       <td className="py-1 pr-3 tabular-nums">{formatDateBR(point.date)}</td>
                       <td className="py-1 pr-3 tabular-nums">{point.entryCount}</td>
-                      <td className="py-1 tabular-nums">{point[config.dataKey] ?? '—'}</td>
+                      <td className="py-1 tabular-nums">{formatAvg(point[config.dataKey])}</td>
                     </tr>
                   ))}
                 </tbody>
