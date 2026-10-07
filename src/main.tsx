@@ -9,6 +9,7 @@ import { getAuthApi, getSupabase } from '@/data/auth';
 import { getAppStore } from '@/data/appStore';
 import { runV1MigrationIfNeeded } from '@/data/migration/run';
 import { createSupabaseRemote } from '@/data/remote/supabaseRemote';
+import { invalidateAfterSync } from '@/data/sync/bridge';
 import { notifyLocalChange, startSyncRuntime } from '@/data/sync/runtime';
 import { setSyncStatus } from '@/data/sync/status';
 import './styles/index.css';
@@ -16,25 +17,6 @@ import './styles/index.css';
 applyTheme(getStoredTheme());
 
 await runV1MigrationIfNeeded(getAppStore());
-
-const supabase = getSupabase();
-if (supabase) {
-  const authApi = getAuthApi();
-  startSyncRuntime({
-    store: getAppStore(),
-    remote: createSupabaseRemote(supabase),
-    getSession: async () => (await authApi?.currentSession()) ?? null,
-    onSync: (result) =>
-      setSyncStatus({
-        kind: 'ok',
-        at: Date.now(),
-        pushed: result.pushed,
-        merged: result.merged,
-      }),
-    onError: (error) => setSyncStatus({ kind: 'error', at: Date.now(), message: error.message }),
-  });
-  authApi?.onAuthChange(() => notifyLocalChange());
-}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +27,27 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const supabase = getSupabase();
+if (supabase) {
+  const authApi = getAuthApi();
+  startSyncRuntime({
+    store: getAppStore(),
+    remote: createSupabaseRemote(supabase),
+    getSession: async () => (await authApi?.currentSession()) ?? null,
+    onSync: (result) => {
+      setSyncStatus({
+        kind: 'ok',
+        at: Date.now(),
+        pushed: result.pushed,
+        merged: result.merged,
+      });
+      invalidateAfterSync(queryClient, result);
+    },
+    onError: (error) => setSyncStatus({ kind: 'error', at: Date.now(), message: error.message }),
+  });
+  authApi?.onAuthChange(() => notifyLocalChange());
+}
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Elemento #root não encontrado no index.html');

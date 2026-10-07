@@ -6,6 +6,7 @@ import { appEnv, resetAppEnv } from '@/core/env';
 import { AuthError } from '@/data/auth';
 import { setAppStore } from '@/data/appStore';
 import { resetSessionStore } from '@/data/hooks/session';
+import { invalidateAfterSync } from '@/data/sync/bridge';
 import { resetSyncStatus, setSyncStatus } from '@/data/sync/status';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { renderApp, setupStore } from '../helpers/render';
@@ -69,6 +70,26 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent('Nome salvo.');
     expect((await store.profile.get())?.displayName).toBe('Ana');
+  });
+
+  it('preenche o nome sozinho quando a sync traz o perfil de outro dispositivo', async () => {
+    const store = setupStore();
+    const { queryClient } = renderApp(<SettingsPage />);
+
+    const name = await screen.findByLabelText('Nome de exibição');
+    expect(name).toHaveValue('');
+
+    // O pull do servidor gravou no store; a sync notifica o React Query.
+    await store.profile.put({ ...(await store.profile.get()), displayName: 'Guilherme' });
+    invalidateAfterSync(queryClient, {
+      pushed: 1,
+      tombstonesPushed: 0,
+      merged: 1,
+      deleted: 0,
+      skipped: 0,
+    });
+
+    await waitFor(() => expect(screen.getByLabelText('Nome de exibição')).toHaveValue('Guilherme'));
   });
 
   it('mostra o modo local quando não há env, sem formulário de login', async () => {

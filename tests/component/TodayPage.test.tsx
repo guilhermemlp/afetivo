@@ -2,7 +2,10 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setAppStore } from '@/data/appStore';
+import { syncOnce } from '@/data/sync/engine';
+import { createMemorySyncState } from '@/data/sync/state';
 import { TodayPage } from '@/features/today/TodayPage';
+import { FakeRemote } from '../helpers/fakeRemote';
 import { renderApp, setupStore } from '../helpers/render';
 
 afterEach(() => setAppStore(null));
@@ -34,6 +37,30 @@ describe('TodayPage', () => {
     expect(entries[0]?.metrics.urge).toBeNull(); // ausente continua ausente
 
     expect(screen.getByText('Ativação 3/5')).toBeInTheDocument();
+  });
+
+  it('registra o dia e a sync leva o registro ao servidor', async () => {
+    const store = setupStore();
+    const user = userEvent.setup();
+    renderApp(<TodayPage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Agradável' }));
+    await user.click(screen.getByRole('button', { name: 'Ativação 3' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar registro' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(/Registro salvo às \d{2}:\d{2}/);
+
+    const remote = new FakeRemote();
+    const result = await syncOnce({ store, remote, state: createMemorySyncState() });
+
+    const entries = await store.entries.list();
+    expect(entries).toHaveLength(1);
+    expect(result.pushed).toBe(2); // registro + perfil
+    expect(remote.get('entries', entries[0]?.id ?? '')?.data).toMatchObject({
+      moodScale: 'valence',
+      moodScore: 2,
+      activationLevel: 3,
+      recordKind: 'moment',
+    });
   });
 
   it('permite salvar respostas puladas e vários momentos no mesmo dia', async () => {
